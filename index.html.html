@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VoltGrid — EV Charging Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;500;700&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#FFFFFF;--bg2:#F8F9FA;--bg3:#EEF2F7;
+  --navy:#0A4F8C;--green:#00A878;--amber:#E8871E;--red:#D93025;--blue:#1565C0;--purple:#9B59B6;
+  --text1:#1A1A2E;--text2:#4A5568;--text3:#718096;
+  --border1:#E2E8F0;--border2:#CBD5E0;
+  --shadow:0 2px 12px rgba(10,79,140,0.08);--shadow-lg:0 8px 32px rgba(10,79,140,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Source Serif 4',serif;background:var(--bg);color:var(--text1);}
+.app{min-height:100vh;background:#fff;}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#f8f9ff 0%,#eef2f7 50%,#f0f8f5 100%);position:relative;overflow:hidden;padding:40px 20px;}
+.hero::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(10,79,140,0.02) 40px,rgba(10,79,140,0.02) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(10,79,140,0.02) 40px,rgba(10,79,140,0.02) 41px);}
+.hero-content{position:relative;text-align:center;max-width:700px;}
+.hero-supertitle{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.15em;color:var(--text3);text-transform:uppercase;margin-bottom:16px;}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(3rem,8vw,5rem);color:var(--navy);line-height:1;margin-bottom:12px;}
+.hero-title span{color:var(--green);}
+.hero-sub{font-family:'Source Serif 4',serif;font-size:1.25rem;color:var(--text2);margin-bottom:24px;}
+.hero-desc{font-size:1rem;color:var(--text3);max-width:500px;margin:0 auto 40px;line-height:1.7;}
+.bolt-grid{display:flex;gap:12px;justify-content:center;margin-bottom:32px;}
+.bolt-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;animation:pulse 2s infinite;}
+.bolt-icon:nth-child(2){animation-delay:0.4s;}
+.bolt-icon:nth-child(3){animation-delay:0.8s;}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:0.8}}
+.btn-primary{background:var(--navy);color:white;border:none;padding:16px 40px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;letter-spacing:0.05em;border-radius:8px;cursor:pointer;transition:all 0.2s;font-weight:700;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary:hover{background:#0d5fa8;transform:translateY(-2px);box-shadow:0 8px 24px rgba(10,79,140,0.25);}
+.btn-secondary{background:transparent;color:var(--navy);border:2px solid var(--navy);padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;border-radius:8px;cursor:pointer;transition:all 0.2s;margin-left:12px;}
+.btn-secondary:hover{background:var(--navy);color:white;}
+.btn-green{background:var(--green);color:white;border:none;padding:14px 32px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;border-radius:8px;cursor:pointer;transition:all 0.2s;font-weight:700;display:inline-flex;align-items:center;gap:8px;}
+.btn-green:hover{background:#009068;transform:translateY(-1px);}
+.btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--text2);padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;border-radius:6px;cursor:pointer;transition:all 0.2s;}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy);}
+.section{padding:80px 40px;max-width:1100px;margin:0 auto;}
+.section-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.15em;color:var(--green);text-transform:uppercase;margin-bottom:8px;}
+.section-title{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--navy);margin-bottom:16px;}
+.section-divider{border:none;border-top:2px solid var(--border1);margin:60px 0;}
+.zone-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:24px;}
+.zone-card{background:white;border:1.5px solid var(--border1);border-radius:12px;padding:20px;transition:all 0.2s;}
+.zone-card:hover{border-color:var(--navy);box-shadow:var(--shadow);transform:translateY(-2px);}
+.zone-name{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text1);margin-bottom:4px;}
+.zone-type{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;}
+.zone-demand{display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--text2);}
+.concept-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:24px;}
+@media(max-width:700px){.concept-grid{grid-template-columns:1fr}}
+.concept-card{background:white;border:1.5px solid var(--border1);border-radius:12px;padding:24px;border-left:5px solid var(--navy);transition:all 0.2s;}
+.concept-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.concept-title{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text1);margin-bottom:8px;}
+.concept-desc{font-size:0.9rem;color:var(--text2);line-height:1.6;margin-bottom:12px;}
+.concept-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.concept-tag{background:var(--bg2);color:var(--text3);padding:3px 10px;border-radius:20px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.05em;}
+.metrics-table{width:100%;border-collapse:collapse;margin-top:20px;}
+.metrics-table th{background:var(--navy);color:white;padding:12px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;letter-spacing:0.05em;}
+.metrics-table td{padding:12px 16px;border-bottom:1px solid var(--border1);font-size:0.9rem;}
+.metrics-table tr:hover td{background:var(--bg2);}
+.formula-tabs{display:flex;gap:4px;margin-bottom:0;border-bottom:2px solid var(--border1);}
+.formula-tab{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;padding:10px 16px;border:none;background:none;cursor:pointer;color:var(--text3);letter-spacing:0.05em;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;}
+.formula-tab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:700;}
+.formula-box{background:var(--bg2);border-radius:0 0 12px 12px;padding:24px;min-height:200px;}
+.formula-item{background:white;border:1px solid var(--border1);border-left:4px solid var(--navy);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:12px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--text1);}
+.setup-card{background:white;border:2px solid var(--border1);border-radius:16px;padding:36px;max-width:560px;margin:40px auto 0;box-shadow:var(--shadow-lg);}
+.setup-title{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--navy);margin-bottom:24px;}
+.form-group{margin-bottom:20px;}
+.form-label{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;letter-spacing:0.05em;color:var(--text3);text-transform:uppercase;margin-bottom:6px;}
+.form-input{width:100%;padding:12px 16px;border:1.5px solid var(--border2);border-radius:8px;font-family:'Source Serif 4',serif;font-size:0.95rem;color:var(--text1);background:white;transition:border-color 0.2s;outline:none;}
+.form-input:focus{border-color:var(--navy);}
+.radio-group{display:flex;gap:12px;flex-wrap:wrap;}
+.radio-option{flex:1;min-width:120px;border:1.5px solid var(--border2);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.radio-option.selected{border-color:var(--navy);background:#EBF5FF;}
+.radio-option-label{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:700;color:var(--text1);display:block;margin-bottom:2px;}
+.radio-option-sub{font-size:0.75rem;color:var(--text3);}
+.briefing-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0f4ff 0%,#f0faf7 100%);padding:40px 20px;}
+.briefing-card{background:white;border-radius:20px;padding:48px;max-width:720px;width:100%;box-shadow:var(--shadow-lg);border:1px solid var(--border1);}
+.briefing-step-title{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--navy);margin-bottom:8px;}
+.briefing-step-sub{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:28px;}
+.briefing-letter{background:var(--bg2);border-left:4px solid var(--navy);border-radius:0 12px 12px 0;padding:24px;font-size:0.95rem;color:var(--text2);line-height:1.8;margin-bottom:24px;}
+.briefing-table{width:100%;border-collapse:collapse;}
+.briefing-table td{padding:12px 16px;border-bottom:1px solid var(--border1);font-size:0.9rem;}
+.briefing-table td:first-child{color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.8rem;}
+.briefing-table td:last-child{font-weight:600;color:var(--text1);text-align:right;}
+.briefing-progress{display:flex;gap:8px;margin-bottom:32px;}
+.briefing-dot{height:6px;flex:1;border-radius:3px;background:var(--border2);transition:background 0.3s;}
+.briefing-dot.active{background:var(--navy);}
+.briefing-dot.done{background:var(--green);}
+.sim-shell{display:flex;flex-direction:column;min-height:100vh;background:#fff;}
+.topbar{background:var(--navy);color:white;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-brand{font-family:'DM Serif Display',serif;font-size:1.4rem;display:flex;align-items:center;gap:10px;}
+.topbar-info{display:flex;align-items:center;gap:24px;}
+.topbar-item{text-align:right;}
+.topbar-item-label{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;opacity:0.7;text-transform:uppercase;}
+.topbar-item-value{font-family:'IBM Plex Mono',monospace;font-size:0.95rem;font-weight:700;}
+.sim-body{display:flex;flex:1;}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border1);padding:20px 12px;flex-shrink:0;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;}
+.sidebar-section{margin-bottom:24px;}
+.sidebar-label{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);padding:0 8px;margin-bottom:6px;}
+.sidebar-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:0.85rem;color:var(--text2);font-family:'Source Serif 4',serif;}
+.sidebar-item:hover{background:white;color:var(--navy);}
+.sidebar-item.active{background:var(--navy);color:white;}
+.sidebar-score{background:white;border:1.5px solid var(--border1);border-radius:10px;padding:14px;text-align:center;margin-top:16px;}
+.sidebar-score-label{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px;}
+.sidebar-score-value{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--navy);}
+.main-content{flex:1;padding:24px;overflow-y:auto;min-width:0;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi-card{background:white;border:1px solid var(--border1);border-radius:10px;padding:20px 24px;border-left:4px solid var(--navy);box-shadow:var(--shadow);transition:all 0.2s;}
+.kpi-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);}
+.kpi-label{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--text1);margin-bottom:4px;}
+.kpi-trend{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;display:flex;align-items:center;gap:4px;}
+.trend-up{color:var(--green);}
+.trend-down{color:var(--red);}
+.dash-tabs{display:flex;gap:4px;border-bottom:2px solid var(--border1);margin-bottom:20px;overflow-x:auto;}
+.dash-tab{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;padding:10px 16px;border:none;background:none;cursor:pointer;color:var(--text3);letter-spacing:0.05em;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all 0.2s;display:flex;align-items:center;gap:6px;}
+.dash-tab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:700;}
+.dash-tab:hover{color:var(--navy);}
+.chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:24px;}
+@media(max-width:900px){.chart-grid{grid-template-columns:1fr;}}
+.chart-card{background:white;border:1px solid var(--border1);border-radius:12px;padding:20px;box-shadow:var(--shadow);}
+.chart-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text1);margin-bottom:4px;}
+.chart-sub{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);margin-bottom:16px;}
+.zone-table{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+.zone-table th{background:var(--navy);color:white;padding:12px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.06em;white-space:nowrap;}
+.zone-table td{padding:12px 16px;border-bottom:1px solid var(--border1);font-size:0.85rem;vertical-align:middle;}
+.zone-table tr:last-child td{border-bottom:none;}
+.zone-table tr:hover td{background:var(--bg2);}
+.zone-table tr.total-row td{background:var(--bg2);font-weight:700;border-top:2px solid var(--border2);}
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;letter-spacing:0.05em;}
+.status-good{background:#E8FFF5;color:#00A878;}
+.status-warning{background:#FFF7ED;color:#E8871E;}
+.status-bad{background:#FFF0EF;color:#D93025;}
+.queue-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.queue-card{background:white;border:1.5px solid var(--border1);border-radius:12px;padding:20px;}
+.queue-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border1);}
+.queue-zone-name{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text1);}
+.queue-param-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.queue-param{background:var(--bg2);border-radius:8px;padding:10px;}
+.queue-param-label{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
+.queue-param-value{font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;color:var(--text1);}
+.queue-insight{background:#EBF5FF;border-left:3px solid var(--navy);border-radius:0 8px 8px 0;padding:10px 12px;font-size:0.8rem;color:var(--text2);line-height:1.5;margin-top:12px;}
+.theory-card{background:white;border:1.5px solid var(--border1);border-radius:12px;padding:24px;margin-bottom:16px;border-left:5px solid var(--navy);}
+.theory-concept{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.theory-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text1);margin-bottom:12px;}
+.theory-body{font-size:0.9rem;color:var(--text2);line-height:1.7;margin-bottom:12px;}
+.theory-formula{background:var(--bg2);border:1px solid var(--border1);border-radius:8px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--text1);margin-bottom:10px;}
+.theory-suggestion{background:#F0FFF8;border-left:3px solid var(--green);border-radius:0 8px 8px 0;padding:10px 14px;font-size:0.85rem;color:var(--text2);display:flex;align-items:flex-start;gap:8px;}
+.decision-layout{display:flex;gap:20px;}
+.decision-nav{width:200px;flex-shrink:0;}
+.decision-nav-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:0.85rem;color:var(--text2);border:1.5px solid transparent;margin-bottom:4px;}
+.decision-nav-item:hover{background:var(--bg2);color:var(--navy);}
+.decision-nav-item.active{border-color:var(--navy);background:#EBF5FF;color:var(--navy);font-weight:600;}
+.decision-main{flex:1;min-width:0;}
+.decision-panel{background:white;border:1px solid var(--border1);border-radius:12px;overflow:hidden;}
+.decision-panel-header{background:var(--navy);color:white;padding:18px 24px;display:flex;align-items:center;gap:10px;}
+.decision-panel-title{font-family:'DM Serif Display',serif;font-size:1.1rem;}
+.decision-panel-body{padding:24px;}
+.input-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:700px){.input-grid{grid-template-columns:repeat(2,1fr);}}
+.input-group{background:var(--bg2);border-radius:10px;padding:14px;}
+.input-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
+.num-input{width:100%;border:1.5px solid var(--border2);border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:var(--text1);background:white;outline:none;transition:border-color 0.2s;}
+.num-input:focus{border-color:var(--navy);}
+.range-input{width:100%;accent-color:var(--navy);margin:6px 0;}
+.select-input{width:100%;border:1.5px solid var(--border2);border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:var(--text1);background:white;outline:none;cursor:pointer;}
+.strategy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.strategy-card{border:2px solid var(--border2);border-radius:10px;padding:16px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.strategy-card:hover{border-color:var(--navy);}
+.strategy-card.selected{border-color:var(--navy);background:#EBF5FF;}
+.strategy-name{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--text1);margin-bottom:4px;}
+.strategy-sub{font-size:0.78rem;color:var(--text3);}
+.summary-box{background:var(--bg2);border:1.5px solid var(--border1);border-radius:12px;padding:20px;}
+.summary-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--navy);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border1);}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border1);font-size:0.85rem;}
+.summary-row:last-child{border-bottom:none;}
+.summary-key{color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem;}
+.summary-val{font-weight:600;color:var(--text1);font-family:'IBM Plex Mono',monospace;font-size:0.8rem;}
+.event-alert{border-radius:10px;padding:16px 20px;margin-bottom:12px;border-left:5px solid;display:flex;gap:14px;align-items:flex-start;}
+.event-alert.warning{background:#FFF8ED;border-left-color:var(--amber);}
+.event-alert.danger{background:#FFF0EF;border-left-color:var(--red);}
+.event-alert.info{background:#EBF5FF;border-left-color:var(--blue);}
+.event-alert.success{background:#E8FFF5;border-left-color:var(--green);}
+.event-title{font-family:'DM Serif Display',serif;font-size:0.95rem;color:var(--text1);margin-bottom:4px;}
+.event-body{font-size:0.85rem;color:var(--text2);line-height:1.5;}
+.event-theory{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);margin-top:6px;}
+.income-statement{background:white;border:1px solid var(--border1);border-radius:12px;overflow:hidden;}
+.income-header{background:var(--navy);color:white;padding:16px 20px;font-family:'DM Serif Display',serif;font-size:1rem;}
+.income-body{padding:20px;}
+.income-section{margin-bottom:16px;}
+.income-section-title{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border1);}
+.income-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.85rem;color:var(--text2);}
+.income-row.sub{padding-left:16px;color:var(--text3);font-size:0.8rem;}
+.income-row.total{border-top:2px solid var(--border2);padding-top:8px;margin-top:4px;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:var(--text1);}
+.income-row.net{border-top:3px double var(--navy);padding-top:10px;margin-top:6px;font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:1rem;}
+.review-wrap{min-height:100vh;background:#f8f9ff;padding:40px 20px;}
+.review-card{max-width:900px;margin:0 auto;background:white;border-radius:20px;padding:48px;box-shadow:var(--shadow-lg);}
+.review-title{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--navy);margin-bottom:4px;}
+.review-sub{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:32px;}
+.scorecard-table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.scorecard-table th{background:var(--navy);color:white;padding:10px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.05em;text-align:left;}
+.scorecard-table td{padding:10px 16px;border-bottom:1px solid var(--border1);font-size:0.9rem;}
+.scorecard-table .total-row td{background:var(--bg2);font-weight:700;border-top:2px solid var(--border2);}
+.strength{background:#E8FFF5;border-left:4px solid var(--green);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:10px;font-size:0.9rem;color:var(--text2);}
+.improvement{background:#FFF7ED;border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:10px;font-size:0.9rem;color:var(--text2);}
+.final-wrap{min-height:100vh;background:#f0f4ff;padding:40px 20px;}
+.final-card{max-width:900px;margin:0 auto;background:white;border-radius:20px;padding:48px;box-shadow:var(--shadow-lg);}
+.certificate{border:3px double var(--navy);border-radius:20px;padding:48px;text-align:center;background:linear-gradient(135deg,#f8f9ff 0%,#f0faf7 100%);margin-top:32px;}
+.cert-title{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--navy);margin-bottom:8px;}
+.cert-sub{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:24px;}
+.cert-name{font-family:'DM Serif Display',serif;font-size:2.5rem;color:var(--text1);border-bottom:2px solid var(--navy);display:inline-block;padding-bottom:4px;margin-bottom:24px;}
+.cert-grade{font-family:'IBM Plex Mono',monospace;font-size:4rem;font-weight:700;margin-bottom:8px;}
+.cert-score{font-family:'IBM Plex Mono',monospace;font-size:1.2rem;color:var(--text2);margin-bottom:24px;}
+.cert-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:400px;margin:0 auto;}
+.cert-metric{background:var(--bg2);border-radius:8px;padding:12px;}
+.cert-metric-label{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+.cert-metric-value{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--navy);}
+.util-bar-wrap{background:var(--border1);border-radius:4px;height:8px;margin-top:4px;overflow:hidden;}
+.util-bar{height:100%;border-radius:4px;transition:width 0.5s;}
+.loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:white;}
+.loading-title{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--navy);margin-bottom:8px;}
+.loading-sub{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3);margin-bottom:32px;}
+.loading-bar-wrap{width:300px;background:var(--border1);border-radius:8px;height:6px;overflow:hidden;}
+.loading-bar{height:100%;background:linear-gradient(90deg,var(--navy),var(--green));border-radius:8px;animation:loadAnim 2s ease-in-out;}
+@keyframes loadAnim{from{width:0%}to{width:100%}}
+.loading-steps{display:flex;flex-direction:column;gap:8px;margin-top:24px;}
+.loading-step{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3);display:flex;align-items:center;gap:8px;animation:fadeIn 0.3s forwards;opacity:0;}
+.loading-step:nth-child(1){animation-delay:0.2s}
+.loading-step:nth-child(2){animation-delay:0.6s}
+.loading-step:nth-child(3){animation-delay:1.0s}
+.loading-step:nth-child(4){animation-delay:1.4s}
+@keyframes fadeIn{to{opacity:1}}
+.number-stepper{display:flex;align-items:center;gap:8px;}
+.stepper-btn{width:28px;height:28px;border:1.5px solid var(--border2);background:white;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;color:var(--text2);transition:all 0.15s;line-height:1;font-weight:700;flex-shrink:0;}
+.stepper-btn:hover{border-color:var(--navy);color:var(--navy);background:#EBF5FF;}
+.stepper-val{font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:700;color:var(--text1);min-width:28px;text-align:center;}
+.context-banner{background:linear-gradient(135deg,#EBF5FF,#f0faf7);border:1.5px solid var(--border1);border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;gap:20px;align-items:flex-start;}
+.context-quarter{font-family:'IBM Plex Mono',monospace;font-size:2rem;font-weight:700;color:var(--navy);line-height:1;}
+.context-info{flex:1;}
+.context-period{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;}
+.context-season{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text1);margin-bottom:4px;}
+.context-desc{font-size:0.9rem;color:var(--text2);line-height:1.5;}
+.section-header{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text1);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border1);display:flex;align-items:center;gap:8px;}
+.section-subheader{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
+.eoq-comparison{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px;}
+.eoq-box{background:var(--bg2);border-radius:10px;padding:16px;border:1.5px solid var(--border1);}
+.eoq-box.highlight{border-color:var(--green);background:#E8FFF5;}
+.eoq-box-label{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+.eoq-box-value{font-family:'IBM Plex Mono',monospace;font-size:1.4rem;font-weight:700;color:var(--text1);}
+.eoq-box-cost{font-size:0.8rem;color:var(--text3);margin-top:4px;}
+.page-title{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--navy);margin-bottom:4px;}
+.page-sub{font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:20px;}
+.forecast-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.forecast-card{background:white;border:1px solid var(--border1);border-radius:10px;padding:14px;text-align:center;}
+.forecast-zone{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);text-transform:uppercase;margin-bottom:4px;letter-spacing:0.06em;}
+.forecast-val{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:var(--navy);}
+.forecast-unit{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);}
+.section-break{height:1px;background:var(--border1);margin:20px 0;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+@media(max-width:700px){.grid-2{grid-template-columns:1fr}}
+.col-green{color:var(--green);}
+.col-red{color:var(--red);}
+.col-amber{color:var(--amber);}
+.col-navy{color:var(--navy);}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:700;letter-spacing:0.05em;}
+.tag-green{background:#E8FFF5;color:var(--green);}
+.tag-amber{background:#FFF7ED;color:var(--amber);}
+.tag-red{background:#FFF0EF;color:var(--red);}
+.tag-navy{background:#EBF5FF;color:var(--navy);}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.fade-in{animation:fadeIn 0.4s forwards;}
+.current-badge{display:inline-block;background:var(--bg2);border:1px solid var(--border1);border-radius:4px;padding:2px 8px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text2);}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,40,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-box{background:white;border-radius:16px;padding:36px;max-width:600px;width:100%;max-height:85vh;overflow:auto;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ============================================================
+// CONSTANTS & DATA
+// ============================================================
+const BASE_DEMAND = { kanke: 45, hec: 65, mainRoad: 90, ratu: 55, doranda: 40 };
+const SEASONAL_FACTORS = { 1: 0.90, 2: 1.20, 3: 0.85, 4: 1.30, 5: 1.00, 6: 1.15 };
+const GROWTH_RATE = 0.08;
+
+const CHARGER_TYPES = {
+  SLOW: { name: "AC Slow (3.3 kW)", installCost: 45000, opCostPerDay: 150, serviceRate: 0.5, revenuePerSession: 80, lifeYears: 8, color: "#00A878" },
+  FAST: { name: "DC Fast (50 kW)", installCost: 350000, opCostPerDay: 800, serviceRate: 2.0, revenuePerSession: 250, lifeYears: 7, color: "#0A4F8C" },
+  ULTRA: { name: "Ultra-Fast (150 kW)", installCost: 1200000, opCostPerDay: 2500, serviceRate: 4.0, revenuePerSession: 500, lifeYears: 6, color: "#9B59B6" }
+};
+
+const ZONES = [
+  { id: "kanke", name: "Kanke Road", type: "Residential", color: "#0A4F8C" },
+  { id: "hec", name: "HEC Colony", type: "Industrial", color: "#00A878" },
+  { id: "mainRoad", name: "Main Road", type: "Commercial", color: "#E8871E" },
+  { id: "ratu", name: "Ratu Road", type: "Mixed", color: "#9B59B6" },
+  { id: "doranda", name: "Doranda", type: "Govt/Mixed", color: "#1ABC9C" }
+];
+
+const QUARTER_INFO = {
+  1: { label: "Q1 2025", period: "Jan–Mar 2025", season: "Winter", desc: "Moderate EV demand. A good time to establish your infrastructure." },
+  2: { label: "Q2 2025", period: "Apr–Jun 2025", season: "Summer Peak", desc: "High demand season. AC vehicle usage surges. Expect queue pressure." },
+  3: { label: "Q3 2025", period: "Jul–Sep 2025", season: "Monsoon", desc: "Variable demand. Maintenance challenges. Plan for power outages." },
+  4: { label: "Q4 2025", period: "Oct–Dec 2025", season: "Festival Season", desc: "Major demand surge. Festival traffic boosts EV usage significantly." },
+  5: { label: "Q5 2026", period: "Jan–Mar 2026", season: "Growth Phase", desc: "Steady growth. Time to optimize operations and reduce costs." },
+  6: { label: "Q6 2026", period: "Apr–Jun 2026", season: "Final Quarter", desc: "Performance review quarter. Make your final push for profitability." }
+};
+
+const FIXED_COSTS_PER_QUARTER = 900000;
+const LABOR = { wagePerDay: 800, OTMultiplier: 1.5, hiringCost: 15000, firingCost: 20000, chargersPerTech: 8, workdaysPerQ: 65 };
+const INV = {
+  energy: { unitCost: 8000, holdingRate: 0.02, orderCost: 25000, leadTimeDays: 21 },
+  parts: { unitCost: 2500, holdingRate: 0.015, orderCost: 8000, leadTimeDays: 14, usagePerChargerQ: 3 }
+};
+
+// ============================================================
+// ENGINE FUNCTIONS
+// ============================================================
+function seededRandom(seed) { let x = Math.sin(seed+1)*10000; return x - Math.floor(x); }
+function factorial(n) { if (n<=1) return 1; let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+
+function calculateMMcQueue(lambda, mu, c) {
+  if (c<=0||mu<=0) return { stable:false, rho:1, Lq:999, Wq:999, L:999, W:999, serviceLevel:0, P0:0, Pw:1 };
+  const rho = lambda/(c*mu);
+  if (rho>=0.99) return { stable:false, rho, Lq:50, Wq:120, L:50, W:120, serviceLevel:0, P0:0, Pw:1 };
+  let sum=0;
+  for(let n=0;n<c;n++) sum += Math.pow(lambda/mu,n)/factorial(n);
+  const lastTerm = Math.pow(lambda/mu,c)/(factorial(c)*(1-rho));
+  const P0 = 1/(sum+lastTerm);
+  const Lq = (P0*Math.pow(lambda/mu,c)*rho)/(factorial(c)*Math.pow(1-rho,2));
+  const Wq = Lq/lambda;
+  const L = Lq+lambda/mu;
+  const W = Wq+1/mu;
+  const T=0.25, A=lambda/mu;
+  const erlangC = (P0*Math.pow(A,c))/(factorial(c)*(1-rho));
+  const serviceLevel = Math.min(1,Math.max(0,1-erlangC*Math.exp(-(c*mu-lambda)*T)));
+  const Pw = (P0*Math.pow(lambda/mu,c))/(factorial(c)*(1-rho));
+  return { stable:true, rho:+rho.toFixed(3), P0:+P0.toFixed(4), Lq:+Lq.toFixed(2), Wq:+(Wq*60).toFixed(1), L:+L.toFixed(2), W:+(W*60).toFixed(1), serviceLevel:+(serviceLevel*100).toFixed(1), Pw:+(Pw*100).toFixed(1) };
+}
+
+function calculateEOQ(D,S,H) { return Math.round(Math.sqrt((2*D*S)/H)); }
+
+function runSimulationRound(state, decisions, round) {
+  const seed = round*1000 + Object.values(decisions.installations||{}).flat().reduce((a,b)=>a+(typeof b==="number"?b:0),0);
+  const demandByZone = {};
+  ZONES.forEach(z => {
+    const base=BASE_DEMAND[z.id], seasonal=SEASONAL_FACTORS[round], growth=Math.pow(1+GROWTH_RATE,round-1);
+    const priceAdj = decisions[`price_${z.id}`] ? -0.3*((decisions[`price_${z.id}`]/250)-1) : 0;
+    const noise = (seededRandom(seed+z.id.length)-0.5)*0.2;
+    demandByZone[z.id] = Math.max(5,Math.round(base*seasonal*growth*(1+priceAdj)*(1+noise)));
+  });
+  const installs = {};
+  ZONES.forEach(z => {
+    installs[z.id]={};
+    ["SLOW","FAST","ULTRA"].forEach(t => { installs[z.id][t]=(state.installations[z.id]?.[t]||0)+(decisions.newInstall?.[z.id]?.[t]||0); });
+  });
+  const queueByZone = {};
+  ZONES.forEach(z => {
+    const totalChargers=Object.values(installs[z.id]).reduce((a,b)=>a+b,0);
+    const weightedMu = totalChargers>0 ? Object.entries(installs[z.id]).reduce((acc,[t,cnt])=>acc+(CHARGER_TYPES[t].serviceRate*cnt),0)/totalChargers : 1;
+    const lambda=demandByZone[z.id]/18;
+    queueByZone[z.id]=calculateMMcQueue(lambda,weightedMu,Math.max(1,totalChargers));
+    queueByZone[z.id].chargers=totalChargers; queueByZone[z.id].lambda=+lambda.toFixed(3);
+    queueByZone[z.id].mu=+weightedMu.toFixed(3); queueByZone[z.id].demand=demandByZone[z.id];
+  });
+  const sessionsByZone = {};
+  ZONES.forEach(z => {
+    const effectiveCap=Object.entries(installs[z.id]).reduce((acc,[t,cnt])=>acc+CHARGER_TYPES[t].serviceRate*18*cnt*0.85,0);
+    const svcLevel=queueByZone[z.id].serviceLevel/100;
+    sessionsByZone[z.id]=Math.min(demandByZone[z.id]*svcLevel,effectiveCap);
+  });
+  let totalRevenue=0;
+  const revenueByZone={};
+  ZONES.forEach(z => {
+    const avgPrice=Object.entries(installs[z.id]).reduce((acc,[t,cnt])=>{
+      const total=Object.values(installs[z.id]).reduce((a,b)=>a+b,0);
+      return acc+(total>0?(decisions[`price${t}`]||CHARGER_TYPES[t].revenuePerSession)*cnt/total:0);
+    },0)||150;
+    revenueByZone[z.id]=sessionsByZone[z.id]*avgPrice*90;
+    totalRevenue+=revenueByZone[z.id];
+  });
+  const totalChargers=ZONES.reduce((acc,z)=>acc+Object.values(installs[z.id]).reduce((a,b)=>a+b,0),0);
+  const requiredWorkers=Math.ceil(totalChargers/LABOR.chargersPerTech);
+  const strategy=decisions.apStrategy||"LEVEL";
+  const currentWorkers=state.workforce.currentWorkers;
+  let hire=0,fire=0,overtime=0,undertime=0,targetWorkers=currentWorkers;
+  if(strategy==="CHASE"){
+    targetWorkers=Math.max(requiredWorkers,decisions.targetWorkforce||requiredWorkers);
+    hire=Math.max(0,targetWorkers-currentWorkers); fire=Math.max(0,currentWorkers-targetWorkers);
+  } else if(strategy==="LEVEL"){
+    targetWorkers=currentWorkers;
+    const regCap=currentWorkers*LABOR.workdaysPerQ, needed=requiredWorkers*LABOR.workdaysPerQ;
+    overtime=Math.max(0,needed-regCap)*0.3; undertime=Math.max(0,regCap-needed)*0.3;
+  } else {
+    targetWorkers=Math.ceil((currentWorkers+requiredWorkers)/2);
+    hire=Math.max(0,targetWorkers-currentWorkers); fire=Math.max(0,currentWorkers-targetWorkers);
+    overtime=Math.max(0,(requiredWorkers-targetWorkers)*LABOR.workdaysPerQ*0.5);
+  }
+  const laborCost=hire*LABOR.hiringCost+fire*LABOR.firingCost+targetWorkers*LABOR.wagePerDay*LABOR.workdaysPerQ+overtime*LABOR.wagePerDay*LABOR.OTMultiplier+undertime*LABOR.wagePerDay*0.5;
+  let installCost=0;
+  ZONES.forEach(z=>["SLOW","FAST","ULTRA"].forEach(t=>{ installCost+=(decisions.newInstall?.[z.id]?.[t]||0)*CHARGER_TYPES[t].installCost; }));
+  let chargerOpCost=0;
+  ZONES.forEach(z=>["SLOW","FAST","ULTRA"].forEach(t=>{ chargerOpCost+=(installs[z.id][t]||0)*CHARGER_TYPES[t].opCostPerDay*90; }));
+  const mainStrat=decisions.maintenanceStrategy||"PREVENTIVE";
+  const maintFactor=mainStrat==="PREVENTIVE"?1.2:mainStrat==="REACTIVE"?0.6:1.5;
+  const maintenanceCost=totalChargers*5000*maintFactor;
+  const energyRates={GRID:8.5,HYBRID:7.2,SOLAR:6.1};
+  const energyType=decisions.energyContract||"GRID";
+  const totalSessions=Object.values(sessionsByZone).reduce((a,b)=>a+b,0)*90;
+  const energyCost=totalSessions*0.8*energyRates[energyType];
+  const annualEnergyDemand=totalSessions*0.8*4;
+  const eoqEnergy=calculateEOQ(annualEnergyDemand,INV.energy.orderCost,INV.energy.holdingRate*INV.energy.unitCost);
+  const playerEnergyOrder=decisions.energyOrderKwh||eoqEnergy;
+  const inventoryDeviation=Math.abs(playerEnergyOrder-eoqEnergy)/(eoqEnergy||1);
+  const holdingCostEnergy=(playerEnergyOrder/2)*INV.energy.holdingRate*INV.energy.unitCost;
+  const orderingCostEnergy=(annualEnergyDemand/(playerEnergyOrder||1))*INV.energy.orderCost/4;
+  const partsNeeded=totalChargers*INV.parts.usagePerChargerQ;
+  const partsOrder=decisions.sparePartsOrder||Math.ceil(partsNeeded*1.2);
+  const currentParts=state.inventory.spareParts||500;
+  const stockoutEnergy=playerEnergyOrder<(totalSessions*0.8*90*0.3)?Math.round((totalSessions*0.8*90*0.3-playerEnergyOrder)*0.1):0;
+  const stockoutParts=(currentParts+partsOrder)<partsNeeded?Math.round(partsNeeded-currentParts-partsOrder):0;
+  const stockoutCost=(stockoutEnergy+stockoutParts)*1500;
+  const totalCost=laborCost+chargerOpCost+installCost+maintenanceCost+energyCost+FIXED_COSTS_PER_QUARTER+holdingCostEnergy+orderingCostEnergy+stockoutCost;
+  const utilizationByZone={};
+  ZONES.forEach(z=>{
+    const designCap=Object.entries(installs[z.id]).reduce((acc,[t,cnt])=>acc+CHARGER_TYPES[t].serviceRate*18*cnt,0);
+    utilizationByZone[z.id]=designCap>0?Math.min(100,+(sessionsByZone[z.id]*90/(designCap*90)*100).toFixed(1)):0;
+  });
+  const avgUtilization=ZONES.reduce((acc,z)=>acc+utilizationByZone[z.id],0)/5;
+  const avgServiceLevel=ZONES.reduce((acc,z)=>acc+queueByZone[z.id].serviceLevel,0)/5;
+  const avgWaitTime=ZONES.reduce((acc,z)=>acc+queueByZone[z.id].Wq,0)/5;
+  const netProfit=totalRevenue-totalCost;
+  const utilScore=avgUtilization>=70&&avgUtilization<=85?12.5:avgUtilization>=60?10:avgUtilization>=50?7:4;
+  const svcScore=avgServiceLevel>=90?12.5:avgServiceLevel>=85?11:avgServiceLevel>=75?8:5;
+  const finScore=netProfit>500000?25:netProfit>200000?20:netProfit>0?15:netProfit>-200000?8:3;
+  const stockScore=(stockoutEnergy+stockoutParts)===0?12.5:Math.max(0,12.5-(stockoutEnergy+stockoutParts)*2);
+  const eoqScore=inventoryDeviation<0.1?12.5:inventoryDeviation<0.3?10:inventoryDeviation<0.5?7:4;
+  const roundScore={operational:utilScore+svcScore,financial:finScore,inventory:stockScore+eoqScore,total:utilScore+svcScore+finScore+stockScore+eoqScore};
+  const feedback=[];
+  if(avgUtilization>88) feedback.push({concept:"Capacity Planning",color:"danger",title:"System Overloaded",explanation:`Charger utilization hit ${avgUtilization.toFixed(1)}%. M/M/c theory predicts exponential queue growth as ρ→1.`,formula:"Lq = P₀(λ/μ)^c × ρ / [c!(1-ρ)²] — as ρ→1, Lq→∞",suggestion:"Add 2–3 more chargers to target 70–85% utilization zone."});
+  if(avgUtilization<45) feedback.push({concept:"Capacity Planning",color:"info",title:"Underutilized Capacity",explanation:`Utilization of ${avgUtilization.toFixed(1)}% means fixed costs are absorbing revenue.`,formula:"Break-even Util = Fixed Cost / (Revenue/session – Variable Cost/session)",suggestion:"Reduce charger count or boost demand through marketing and pricing."});
+  if(strategy==="CHASE"&&hire+fire>3) feedback.push({concept:"Aggregate Planning",color:"warning",title:"Chase Strategy Costs Rising",explanation:`You hired ${hire} and fired ${fire} workers, costing ₹${((hire*LABOR.hiringCost+fire*LABOR.firingCost)/100000).toFixed(1)}L in HR costs alone.`,formula:"AP Chase Cost = Hires×₹15,000 + Fires×₹20,000 + Regular Labor",suggestion:"Consider Mixed strategy to reduce expensive hire/fire cycles."});
+  if(stockoutEnergy+stockoutParts>0) feedback.push({concept:"Inventory Management",color:"danger",title:"Stockout Occurred!",explanation:`${stockoutEnergy+stockoutParts} units short. ROP was insufficient. Stockout cost: ₹${stockoutCost.toLocaleString("en-IN")}.`,formula:"ROP = d̄×L + z×σd×√L — Your safety stock was below the required level",suggestion:`Order at least EOQ=${eoqEnergy} kWh and maintain safety stock of ${Math.round(eoqEnergy*0.15)} units.`});
+  if(inventoryDeviation>0.3) feedback.push({concept:"Inventory Management",color:"warning",title:`Order Quantity ${playerEnergyOrder>eoqEnergy?"Above":"Below"} EOQ`,explanation:`You ordered ${playerEnergyOrder} vs EOQ recommendation of ${eoqEnergy}.`,formula:`EOQ = √(2DS/H) = ${eoqEnergy}`,suggestion:"Align order quantity with EOQ to minimize total inventory cost."});
+  if(avgWaitTime>20) feedback.push({concept:"Queuing Theory",color:"danger",title:"Excessive Queue Wait Times",explanation:`Average Wq=${avgWaitTime.toFixed(1)} min across zones. High ρ is causing queue buildup beyond the 15-min target.`,formula:"Wq = Lq/λ = [P₀(λ/μ)^c×ρ] / [c!×λ×(1-ρ)²]",suggestion:"Add servers where ρ>0.85. Each additional charger at high-utilization zones will dramatically reduce Wq."});
+  return {round,installs,demandByZone,sessionsByZone,revenueByZone,totalRevenue,laborCost,installCost,chargerOpCost,maintenanceCost,energyCost,holdingCostEnergy,orderingCostEnergy,stockoutCost,totalCost,netProfit,utilizationByZone,avgUtilization,queueByZone,avgServiceLevel,avgWaitTime,hire,fire,targetWorkers,overtime,undertime,eoqEnergy,playerEnergyOrder,inventoryDeviation,stockoutEnergy,stockoutParts,partsNeeded,feedback,roundScore};
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  phase:"LANDING", round:0, playerName:"", institution:"", difficulty:"STANDARD", capital:5000000,
+  cumulativeRevenue:0, cumulativeCost:0, cumulativeProfit:0,
+  installations:{kanke:{SLOW:0,FAST:0,ULTRA:0},hec:{SLOW:0,FAST:0,ULTRA:0},mainRoad:{SLOW:0,FAST:0,ULTRA:0},ratu:{SLOW:0,FAST:0,ULTRA:0},doranda:{SLOW:0,FAST:0,ULTRA:0}},
+  workforce:{currentWorkers:10,totalHired:0,totalFired:0},
+  inventory:{energyStorageKwh:100,spareParts:500},
+  history:[], currentDecisions:{}, lastResult:null, scores:[], totalScore:0,
+  briefingStep:0, activeDecisionTab:"capacity", activeDashTab:"summary"
+};
+
+function getDefaultDecisions() {
+  const totalC=ZONES.reduce((acc,z)=>acc+Object.values(state.installations[z.id]||{}).reduce((a,b)=>a+b,0),0);
+  const eoqE=calculateEOQ(totalC*200,INV.energy.orderCost,INV.energy.holdingRate*INV.energy.unitCost);
+  return {
+    newInstall:{kanke:{SLOW:0,FAST:0,ULTRA:0},hec:{SLOW:0,FAST:0,ULTRA:0},mainRoad:{SLOW:0,FAST:0,ULTRA:0},ratu:{SLOW:0,FAST:0,ULTRA:0},doranda:{SLOW:0,FAST:0,ULTRA:0}},
+    apStrategy:"LEVEL", targetWorkforce:state.workforce.currentWorkers, authorizedOvertimePct:10,
+    energyOrderKwh:eoqE, sparePartsOrder:Math.ceil(totalC*4),
+    maxQueueLength:20, priorityRule:"FCFS",
+    priceSLOW:80, priceFAST:250, priceULTRA:500,
+    energyContract:"GRID", maintenanceStrategy:"PREVENTIVE"
+  };
+}
+
+function dispatch(action) {
+  switch(action.type) {
+    case "SET_PLAYER":
+      state = {...state, playerName:action.playerName, institution:action.institution, difficulty:action.difficulty, phase:"BRIEFING"};
+      break;
+    case "SET_BRIEFING_STEP":
+      state = {...state, briefingStep:action.payload};
+      break;
+    case "START_ROUND":
+      state = {...state, phase:"DECISION", round:state.round+1, currentDecisions:getDefaultDecisions()};
+      break;
+    case "UPDATE_DECISION":
+      state = {...state, currentDecisions:{...state.currentDecisions,...action.payload}};
+      break;
+    case "UPDATE_INSTALL": {
+      const ni={...(state.currentDecisions.newInstall||{})};
+      ni[action.zone]={...(ni[action.zone]||{SLOW:0,FAST:0,ULTRA:0}),[action.chargerType]:Math.max(0,action.value)};
+      state = {...state, currentDecisions:{...state.currentDecisions,newInstall:ni}};
+      break;
+    }
+    case "SUBMIT_ROUND": {
+      const result=runSimulationRound(state,state.currentDecisions,state.round);
+      const newHistory=[...state.history,{round:state.round,decisions:state.currentDecisions,result}];
+      const newScores=[...state.scores,result.roundScore];
+      const totalScore=Math.min(100,Math.round(newScores.reduce((acc,s,i)=>{const w=i<2?0.1:i<4?0.15:0.25;return acc+s.total*w;},0)));
+      state={...state,phase:"RUNNING",lastResult:result,history:newHistory,scores:newScores,totalScore,
+        installations:result.installs,capital:state.capital+result.netProfit,
+        cumulativeRevenue:state.cumulativeRevenue+result.totalRevenue,
+        cumulativeCost:state.cumulativeCost+result.totalCost,
+        cumulativeProfit:state.cumulativeProfit+result.netProfit,
+        workforce:{...state.workforce,currentWorkers:result.targetWorkers,totalHired:state.workforce.totalHired+result.hire,totalFired:state.workforce.totalFired+result.fire},
+        inventory:{energyStorageKwh:Math.max(0,(state.inventory.energyStorageKwh||0)+(state.currentDecisions.energyOrderKwh||0)-(result.totalRevenue/300)),spareParts:Math.max(0,(state.inventory.spareParts||500)+(state.currentDecisions.sparePartsOrder||0)-result.partsNeeded)}
+      };
+      setTimeout(()=>{ state={...state,phase:"DASHBOARD"}; render(); },2500);
+      break;
+    }
+    case "SET_DASH_TAB": state={...state,activeDashTab:action.payload}; break;
+    case "SET_DECISION_TAB": state={...state,activeDecisionTab:action.payload}; break;
+    case "NEXT_QUARTER":
+      state={...state,
+        phase:state.round>=6?"FINAL":state.round===2||state.round===4?"REVIEW":"DECISION",
+        round:state.round<6?state.round+1:state.round,
+        currentDecisions:state.round<6?getDefaultDecisions():state.currentDecisions
+      };
+      break;
+    case "FROM_REVIEW": state={...state,phase:"DECISION"}; break;
+  }
+  render();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(n) {
+  if(n===undefined||n===null||isNaN(n)) return "₹0";
+  const abs=Math.abs(n);
+  if(abs>=10000000) return `₹${(n/10000000).toFixed(2)}Cr`;
+  if(abs>=100000) return `₹${(n/100000).toFixed(2)}L`;
+  if(abs>=1000) return `₹${(n/1000).toFixed(1)}K`;
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+function getGrade(score) {
+  if(score>=90) return {grade:"A",label:"Exceptional",color:"#00A878"};
+  if(score>=75) return {grade:"B",label:"Proficient",color:"#0A4F8C"};
+  if(score>=60) return {grade:"C",label:"Developing",color:"#E8871E"};
+  return {grade:"D",label:"Needs Improvement",color:"#D93025"};
+}
+function getUtilColor(u) {
+  if(u>=70&&u<=85) return "#00A878";
+  if(u>=55&&u<70) return "#E8871E";
+  if(u>85&&u<=92) return "#E8871E";
+  return "#D93025";
+}
+function getWqColor(wq) {
+  if(wq<10) return "#00A878";
+  if(wq<20) return "#E8871E";
+  return "#D93025";
+}
+const svgIcon = {
+  zap: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`,
+  zapSm: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`,
+  battery: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>`,
+  users: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  pkg: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`,
+  cal: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  dollar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  book: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+  bar: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  activity: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>`,
+  arrow: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  chevRight: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`,
+  check: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00A878" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+  warn: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8871E" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  danger: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D93025" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  info: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  success: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00A878" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+  truck: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+  refresh: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
+  star: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00A878" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+  trendUp:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  trendDown:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
+};
+
+// Chart.js instances tracker
+const chartInstances = {};
+
+function destroyChart(id) {
+  if(chartInstances[id]) { try { chartInstances[id].destroy(); } catch(e){} delete chartInstances[id]; }
+}
+
+function makeBarLineChart(canvasId, labels, datasets, refLine) {
+  destroyChart(canvasId);
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const annotations = {};
+  if(refLine !== undefined) {
+    annotations.ref = { type:'line', yMin:refLine, yMax:refLine, borderColor:'#E8871E', borderDash:[4,4], borderWidth:2, label:{content:`Target ${refLine}%`,enabled:true,font:{size:10},color:'#E8871E'} };
+  }
+  chartInstances[canvasId] = new Chart(ctx, {
+    type:'bar', data:{labels, datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{font:{family:"'IBM Plex Mono',monospace",size:10}}},tooltip:{titleFont:{family:"'IBM Plex Mono',monospace"},bodyFont:{family:"'IBM Plex Mono',monospace"}}},
+      scales:{x:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}},y:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}}}}
+  });
+}
+
+// ============================================================
+// RENDER ENGINE
+// ============================================================
+function render() {
+  const app = document.getElementById('app');
+  switch(state.phase) {
+    case 'LANDING': app.innerHTML = renderLanding(); attachLandingEvents(); break;
+    case 'BRIEFING': app.innerHTML = renderBriefing(); attachBriefingEvents(); break;
+    case 'RUNNING': app.innerHTML = renderLoading(); break;
+    case 'DECISION': app.innerHTML = renderSimShell(); attachSimEvents(); attachDecisionEvents(); break;
+    case 'DASHBOARD': app.innerHTML = renderSimShell(); attachSimEvents(); attachDashboardEvents(); setTimeout(()=>renderCharts(),50); break;
+    case 'REVIEW': app.innerHTML = renderReview(); attachReviewEvents(); setTimeout(()=>renderReviewCharts(),50); break;
+    case 'FINAL': app.innerHTML = renderFinal(); attachFinalEvents(); setTimeout(()=>renderFinalCharts(),50); break;
+  }
+}
+
+// ============================================================
+// LANDING PAGE
+// ============================================================
+let landingFormulaTab = 0;
+
+const formulaTabs = [
+  { label:"Aggregate Planning", formulas:["Pt = Dt + (It-1 – It)  — Production = Demand + Inventory change","Chase: Hire/Fire to match demand each period","Level: Constant workforce, absorb with overtime/undertime","OT Cost = Regular Rate × 1.5 × OT Hours","Undertime Cost = Wage Rate × Idle Hours"] },
+  { label:"Capacity Planning", formulas:["Utilization = Actual Output / Design Capacity × 100%","Efficiency = Actual Output / Effective Capacity × 100%","Break-even Vol = Fixed Cost / (Price – Variable Cost)","Machines Needed = (Demand × Processing Time) / (Avail Time × Util)"] },
+  { label:"Inventory", formulas:["EOQ = √(2DS/H)  where D=demand, S=ordering cost, H=holding","ROP = d̄×L + z×σd×√L  (Reorder Point formula)","Safety Stock = z × σd × √L","Total Inv Cost = (D/Q)×S + (Q/2)×H + Unit Cost×D","Avg Inventory = Q/2 + Safety Stock"] },
+  { label:"Queuing (M/M/c)", formulas:["ρ = λ/(c×μ)  — Server utilization","P₀ = [Σ(λ/μ)ⁿ/n! + (λ/μ)^c/(c!(1-ρ))]⁻¹","Lq = P₀(λ/μ)^c × ρ / [c!(1-ρ)²]","Wq = Lq / λ  (avg wait in queue)","L = Lq + λ/μ  |  W = Wq + 1/μ","Service Level = P(wait < T) = 1 – Erlang-C × e^(-(cμ-λ)T)"]}
+];
+
+function renderLanding() {
+  const d = state._landingDifficulty || "STANDARD";
+  const ap = state._landingAp || "LEVEL";
+  return `
+<div class="app">
+  <section class="hero">
+    <div class="hero-content fade-in">
+      <div class="hero-supertitle">Operations Management Simulation — Ranchi, Jharkhand</div>
+      <h1 class="hero-title">Volt<span>Grid</span></h1>
+      <p class="hero-sub">Build. Operate. Optimize. Lead Ranchi's EV Revolution.</p>
+      <div class="bolt-grid">
+        <div class="bolt-icon" style="background:#EBF5FF;color:#0A4F8C">${svgIcon.zap}</div>
+        <div class="bolt-icon" style="background:#E8FFF5;color:#00A878">${svgIcon.zap}</div>
+        <div class="bolt-icon" style="background:#FFF7ED;color:#E8871E">${svgIcon.zap}</div>
+      </div>
+      <p class="hero-desc">Ranchi is electrifying. Your company, VoltGrid Pvt. Ltd., has won the state contract to operate EV charging networks across 5 city zones. Over 6 quarters, apply real Operations Management principles to build a profitable, high-service charging empire.</p>
+      <div>
+        <button class="btn-primary" id="btnScroll">Enter Simulation ${svgIcon.arrow}</button>
+        <button class="btn-secondary" id="btnContext">Read Briefing ↓</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="context">
+    <div class="section-label">Your Mission</div>
+    <h2 class="section-title">The VoltGrid Challenge</h2>
+    <div class="grid-2">
+      <div>
+        <p style="font-size:0.95rem;color:var(--text2);line-height:1.8;margin-bottom:16px">Jharkhand registered <strong>12,400 EVs in 2024</strong> — a 340% surge from 2021. Yet Ranchi has only 23 public charging stations. VoltGrid Pvt. Ltd. has secured a 5-zone operating contract.</p>
+        <p style="font-size:0.95rem;color:var(--text2);line-height:1.8;margin-bottom:16px">Your task: install chargers, manage workforce, procure energy, set prices, and optimize queues — all while staying profitable over 6 quarters (18 months).</p>
+        <p style="font-size:0.95rem;color:var(--text2);line-height:1.8">Every decision is rooted in Operations Management theory. Real M/M/c queue metrics, EOQ costs, aggregate planning trade-offs, and capacity utilization.</p>
+      </div>
+      <div class="zone-grid">
+        ${ZONES.map(z=>`<div class="zone-card" style="border-left:4px solid ${z.color}"><div class="zone-name">${z.name}</div><div class="zone-type">${z.type}</div><div class="zone-demand">${svgIcon.battery} ${BASE_DEMAND[z.id]} EVs/day base demand</div></div>`).join('')}
+      </div>
+    </div>
+  </section>
+  <hr class="section-divider"/>
+
+  <section class="section" id="rules">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">Simulation Rules</h2>
+    <div class="grid-2">
+      ${["6 Decision Rounds = 6 quarters (Q1 2025 — Q2 2026). Each round: decisions → engine run → results.","Demand fluctuates seasonally. Q2 (summer) and Q4 (festivals) are peak. Q3 (monsoon) is lowest.","You manage 5 zones with shared capital. Install chargers, hire staff, order inventory — all from ₹50L.","Random events may occur. Your OM knowledge helps mitigate them.","All calculations are transparent. Every metric is linked to a formula.","Theory feedback appears after every round, linking results to OM concepts.","Mid-term reviews after Q2 and Q4. Final report + academic grade after Q6.","Score weighted: Q1-Q2: 10% each, Q3-Q4: 15% each, Q5-Q6: 25% each."].map((r,i)=>`<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border1)"><div style="width:28px;height:28px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;font-weight:700;flex-shrink:0">${i+1}</div><p style="font-size:0.9rem;color:var(--text2);line-height:1.6">${r}</p></div>`).join('')}
+    </div>
+  </section>
+  <hr class="section-divider"/>
+
+  <section class="section">
+    <div class="section-label">Academic Content</div>
+    <h2 class="section-title">OM Concepts You Will Apply</h2>
+    <div class="concept-grid">
+      ${[
+        {title:"Aggregate Planning",color:"var(--navy)",desc:"Match workforce and charging capacity to forecasted demand using Chase, Level, or Mixed strategies.",tags:["Chase Strategy","Level Strategy","Mixed Strategy","Overtime Cost","Undertime"]},
+        {title:"Capacity Planning",color:"var(--green)",desc:"Decide how many chargers to install, when to expand, and how to allocate capacity across zones.",tags:["Utilization Rate","Break-even","Bottleneck","Design Capacity","Effective Capacity"]},
+        {title:"Inventory Management",color:"var(--amber)",desc:"Manage energy storage and spare parts using EOQ to minimize total inventory cost, set reorder points, and calculate safety stock.",tags:["EOQ","Reorder Point","Safety Stock","Holding Cost","Lead Time"]},
+        {title:"Queuing Theory",color:"var(--blue)",desc:"Model charging stations as M/M/c queuing systems. Optimize server count to minimize customer wait time.",tags:["M/M/c Model","Arrival Rate λ","Service Rate μ","Utilization ρ","Wq | Lq"]}
+      ].map(c=>`<div class="concept-card" style="border-left-color:${c.color}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div style="background:${c.color}25;color:${c.color};padding:8px;border-radius:8px">${svgIcon.zap}</div><div class="concept-title">${c.title}</div></div>
+        <div class="concept-desc">${c.desc}</div>
+        <div class="concept-tags">${c.tags.map(t=>`<span class="concept-tag">${t}</span>`).join('')}</div>
+      </div>`).join('')}
+    </div>
+  </section>
+  <hr class="section-divider"/>
+
+  <section class="section">
+    <div class="section-label">Evaluation</div>
+    <h2 class="section-title">How You Will Be Scored</h2>
+    <table class="metrics-table">
+      <thead><tr><th>Dimension</th><th>Metric</th><th>Target</th><th>Weight</th></tr></thead>
+      <tbody>
+        ${[["Operational","Average Charger Utilization","70–85%","20%"],["Operational","Service Level (served in <15 min)","≥85%","20%"],["Financial","Quarterly Net Profit",">₹0","25%"],["Financial","Cost per Charging Session","Minimize","15%"],["Inventory","Stockout Events","0","10%"],["Planning","Forecast Accuracy (MAPE)","<20%","10%"]].map(r=>`<tr><td><span class="tag tag-navy">${r[0]}</span></td><td>${r[1]}</td><td><strong>${r[2]}</strong></td><td><strong>${r[3]}</strong></td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div style="display:flex;gap:16px;margin-top:20px;flex-wrap:wrap">
+      ${[["A","90-100","#00A878","Exceptional"],["B","75-89","#0A4F8C","Proficient"],["C","60-74","#E8871E","Developing"],["D","<60","#D93025","Needs Work"]].map(([g,r,c,l])=>`<div style="background:${c}15;border:2px solid ${c};border-radius:10px;padding:10px 20px;text-align:center"><div style="font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:${c}">${g}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:${c}">${r}</div><div style="font-size:0.75rem;color:var(--text3);margin-top:2px">${l}</div></div>`).join('')}
+    </div>
+  </section>
+  <hr class="section-divider"/>
+
+  <section class="section">
+    <div class="section-label">Quick Reference</div>
+    <h2 class="section-title">OM Formulas You'll Use</h2>
+    <div class="formula-tabs" id="formulaTabs">
+      ${formulaTabs.map((t,i)=>`<button class="formula-tab ${i===landingFormulaTab?'active':''}" data-idx="${i}">${t.label}</button>`).join('')}
+    </div>
+    <div class="formula-box" id="formulaBox">
+      ${formulaTabs[landingFormulaTab].formulas.map(f=>`<div class="formula-item">${f}</div>`).join('')}
+    </div>
+  </section>
+  <hr class="section-divider"/>
+
+  <section class="section" id="setup">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">Set Up Your Profile</h2>
+    <div class="setup-card">
+      <div class="setup-title">Ready to run VoltGrid?</div>
+      <div class="form-group">
+        <label class="form-label">Your Name *</label>
+        <input class="form-input" id="playerName" placeholder="Enter your name" value="${state._landingName||''}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Institution (optional)</label>
+        <input class="form-input" id="institution" placeholder="Your college / university" value="${state._landingInstitution||''}"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Difficulty Level</label>
+        <div class="radio-group">
+          ${[["STANDARD","Standard","Classroom recommended"],["ADVANCED","Advanced","Higher variability"]].map(([v,l,s])=>`<div class="radio-option ${d===v?'selected':''}" data-diff="${v}"><span class="radio-option-label">${l}</span><span class="radio-option-sub">${s}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Starting AP Preference</label>
+        <div class="radio-group">
+          ${[["CHASE","Chase","Match demand"],["LEVEL","Level","Stable workforce"],["MIXED","Mixed","Balanced"]].map(([v,l,s])=>`<div class="radio-option ${ap===v?'selected':''}" data-ap="${v}"><span class="radio-option-label">${l}</span><span class="radio-option-sub">${s}</span></div>`).join('')}
+        </div>
+      </div>
+      <button class="btn-primary" id="btnStart" style="width:100%;justify-content:center;margin-top:8px">Begin Operations as VoltGrid Manager ${svgIcon.arrow}</button>
+    </div>
+  </section>
+  <div style="height:80px"></div>
+</div>`;
+}
+
+function attachLandingEvents() {
+  document.getElementById('btnScroll')?.addEventListener('click',()=>document.getElementById('setup')?.scrollIntoView({behavior:'smooth'}));
+  document.getElementById('btnContext')?.addEventListener('click',()=>document.getElementById('context')?.scrollIntoView({behavior:'smooth'}));
+  document.querySelectorAll('.formula-tab').forEach(btn=>btn.addEventListener('click',()=>{
+    landingFormulaTab=+btn.dataset.idx;
+    document.querySelectorAll('.formula-tab').forEach(b=>b.classList.toggle('active',+b.dataset.idx===landingFormulaTab));
+    document.getElementById('formulaBox').innerHTML=formulaTabs[landingFormulaTab].formulas.map(f=>`<div class="formula-item">${f}</div>`).join('');
+  }));
+  document.querySelectorAll('[data-diff]').forEach(el=>el.addEventListener('click',()=>{
+    state._landingDifficulty=el.dataset.diff;
+    document.querySelectorAll('[data-diff]').forEach(e=>e.classList.toggle('selected',e.dataset.diff===state._landingDifficulty));
+  }));
+  document.querySelectorAll('[data-ap]').forEach(el=>el.addEventListener('click',()=>{
+    state._landingAp=el.dataset.ap;
+    document.querySelectorAll('[data-ap]').forEach(e=>e.classList.toggle('selected',e.dataset.ap===state._landingAp));
+  }));
+  document.getElementById('playerName')?.addEventListener('input',e=>state._landingName=e.target.value);
+  document.getElementById('institution')?.addEventListener('input',e=>state._landingInstitution=e.target.value);
+  document.getElementById('btnStart')?.addEventListener('click',()=>{
+    const name=(state._landingName||'').trim();
+    if(!name){alert('Please enter your name to proceed.');return;}
+    dispatch({type:'SET_PLAYER',playerName:name,institution:state._landingInstitution||'',difficulty:state._landingDifficulty||'STANDARD'});
+  });
+}
+
+// ============================================================
+// BRIEFING
+// ============================================================
+function renderBriefing() {
+  const step = state.briefingStep;
+  const steps = [
+    {title:"Welcome to VoltGrid",sub:"Board of Directors Brief — Q1 2025",html:`<div class="briefing-letter"><p><strong>Dear Operations Manager,</strong></p><br/><p>Congratulations on your appointment as Chief Operations Manager of VoltGrid Pvt. Ltd. The Board is excited to commence our EV charging operations across Ranchi's five strategic zones.</p><br/><p>You have been allocated an initial capital of <strong>₹50,00,000</strong> (50 Lakhs) to build and operate this network. Your mandate is to achieve profitability within 6 quarters while maintaining excellent service quality.</p><br/><p>Best regards,<br/><strong>The Board of Directors, VoltGrid Pvt. Ltd.</strong></p></div>`},
+    {title:"Your Starting Position",sub:"Initial Conditions — As of January 2025",html:`<table class="briefing-table"><tbody>${[["Starting Capital","₹50,00,000 (50 Lakhs)"],["Installed Chargers","0 across all 5 zones"],["Technicians","10 (can be adjusted)"],["Energy Contracts","None (must be negotiated)"],["Battery Storage","100 kWh initial buffer"],["Spare Parts","500 units (minimum)"],["Fixed Monthly Costs","₹3,00,000 (HQ + licenses + lease)"],["Growth Rate","8% demand growth per quarter"],["Operating Hours","6 AM – Midnight (18 hrs/day)"]].map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody></table>`},
+    {title:"Your Decision Framework",sub:"8 Categories of Operational Decisions",html:`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">${[["1. Capacity Planning","Charger installation by zone & type"],["2. Aggregate Planning","Workforce levels & strategy (Chase/Level/Mixed)"],["3. Inventory Management","Energy storage & spare parts orders (EOQ)"],["4. Queue Policy","Max queue length, priority rules"],["5. Pricing Strategy","Per-session pricing by charger type"],["6. Energy Procurement","Contract type & volume"],["7. Maintenance","Preventive vs reactive scheduling"],["8. Zone Strategy","Marketing budget & priorities"]].map(([t,s])=>`<div style="background:var(--bg2);border-radius:8px;padding:12px 14px;border-left:3px solid var(--navy)"><div style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:700;color:var(--navy);margin-bottom:2px">${t}</div><div style="font-size:0.8rem;color:var(--text3)">${s}</div></div>`).join('')}</div><div style="background:#EBF5FF;border-left:4px solid var(--navy);border-radius:0 8px 8px 0;padding:14px 16px;margin-top:20px"><div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--navy);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">💡 Pro Tip</div><p style="font-size:0.85rem;color:var(--text2)">Start Q1 with at least 2 Fast DC chargers at Main Road (highest demand: 90/day). Install Slow chargers in Doranda (lowest demand: 40/day) to conserve capital.</p></div>`}
+  ];
+  return `<div class="briefing-wrap"><div class="briefing-card">
+    <div class="briefing-progress">${steps.map((_,i)=>`<div class="briefing-dot ${i<step?'done':i===step?'active':''}"></div>`).join('')}</div>
+    <div class="briefing-step-title">${steps[step].title}</div>
+    <div class="briefing-step-sub">${steps[step].sub}</div>
+    ${steps[step].html}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px">
+      ${step>0?`<button class="btn-outline" id="btnBack">← Back</button>`:`<div></div>`}
+      ${step<steps.length-1?`<button class="btn-primary" id="btnNext">Next ${svgIcon.chevRight}</button>`:`<button class="btn-green" id="btnProceed">Proceed to Decision Panel ${svgIcon.arrow}</button>`}
+    </div>
+  </div></div>`;
+}
+
+function attachBriefingEvents() {
+  document.getElementById('btnBack')?.addEventListener('click',()=>dispatch({type:'SET_BRIEFING_STEP',payload:state.briefingStep-1}));
+  document.getElementById('btnNext')?.addEventListener('click',()=>dispatch({type:'SET_BRIEFING_STEP',payload:state.briefingStep+1}));
+  document.getElementById('btnProceed')?.addEventListener('click',()=>dispatch({type:'START_ROUND'}));
+}
+
+// ============================================================
+// LOADING
+// ============================================================
+function renderLoading() {
+  return `<div class="loading-screen">
+    <div style="margin-bottom:24px;color:var(--navy)">${svgIcon.zap.replace('22','40')}</div>
+    <div class="loading-title">Running Q${state.round} Simulation</div>
+    <div class="loading-sub">Processing your decisions through the OM engine...</div>
+    <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+    <div class="loading-steps">
+      ${["Calculating demand with seasonal factors...","Running M/M/c queue analysis for all 5 zones...","Simulating inventory over 65-day quarter...","Computing workforce costs and AP trade-offs..."].map(s=>`<div class="loading-step">${svgIcon.check} ${s}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// SIMULATION SHELL
+// ============================================================
+function renderSimShell() {
+  const isDecision = state.phase === 'DECISION';
+  const qInfo = QUARTER_INFO[state.round] || QUARTER_INFO[1];
+  const g = getGrade(state.totalScore);
+
+  const sidebarNavDecision = [
+    {id:'capacity',label:'Capacity',icon:svgIcon.battery},
+    {id:'planning',label:'Agg. Planning',icon:svgIcon.cal},
+    {id:'inventory',label:'Inventory',icon:svgIcon.pkg},
+    {id:'queue',label:'Queue Policy',icon:svgIcon.users},
+    {id:'pricing',label:'Pricing & Maint.',icon:svgIcon.dollar}
+  ];
+  const sidebarNavDash = [
+    {id:'summary',label:'Summary',icon:svgIcon.bar},
+    {id:'queuing',label:'Queuing',icon:svgIcon.users},
+    {id:'inventory',label:'Inventory',icon:svgIcon.pkg},
+    {id:'financials',label:'Financials',icon:svgIcon.dollar},
+    {id:'planning',label:'AP Analysis',icon:svgIcon.cal},
+    {id:'theory',label:'Theory',icon:svgIcon.book}
+  ];
+  const navItems = isDecision ? sidebarNavDecision : sidebarNavDash;
+  const activeItem = isDecision ? state.activeDecisionTab : state.activeDashTab;
+
+  const capitalColor = state.capital > 1000000 ? 'white' : state.capital > 0 ? '#FBD38D' : '#FC8181';
+
+  return `<div class="sim-shell">
+  <div class="topbar">
+    <div class="topbar-brand"><span style="color:#00A878">${svgIcon.zap}</span> VoltGrid</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      ${[1,2,3,4,5,6].map(q=>`<div style="width:28px;height:28px;border-radius:50%;background:${q<state.round?'var(--green)':q===state.round?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.2)'};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:700;color:${q===state.round?'var(--navy)':q<state.round?'white':'rgba(255,255,255,0.6)'};border:${q===state.round?'2px solid white':'none'}">${q<state.round?'✓':q}</div>`).join('')}
+    </div>
+    <div class="topbar-info">
+      <div class="topbar-item"><div class="topbar-item-label">Capital</div><div class="topbar-item-value" style="color:${capitalColor}">${fmt(state.capital)}</div></div>
+      <div class="topbar-item"><div class="topbar-item-label">Quarter</div><div class="topbar-item-value">${qInfo.label}</div></div>
+      <div class="topbar-item"><div class="topbar-item-label">Player</div><div class="topbar-item-value">${(state.playerName||'Player').split(' ')[0]}</div></div>
+    </div>
+  </div>
+  <div class="sim-body">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">${isDecision?'Decisions':'Dashboard'}</div>
+        ${navItems.map(n=>`<div class="sidebar-item ${activeItem===n.id?'active':''}" data-nav="${n.id}">${n.icon} ${n.label}</div>`).join('')}
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">History</div>
+        ${state.history.slice(-4).map(h=>`<div style="padding:6px 10px;font-size:0.78rem;color:var(--text3);font-family:'IBM Plex Mono',monospace;display:flex;justify-content:space-between"><span>Q${h.round}</span><span style="color:${h.result.netProfit>=0?'var(--green)':'var(--red)'}">${fmt(h.result.netProfit)}</span></div>`).join('')}
+      </div>
+      <div class="sidebar-score">
+        <div class="sidebar-score-label">Score</div>
+        <div class="sidebar-score-value" style="color:${g.color}">${state.totalScore}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:${g.color};margin-top:2px">Grade ${g.grade}</div>
+        <div class="util-bar-wrap" style="margin-top:6px"><div class="util-bar" style="width:${state.totalScore}%;background:${g.color}"></div></div>
+      </div>
+    </div>
+    <div class="main-content" id="mainContent">
+      ${isDecision ? renderDecisionRound() : renderDashboard()}
+    </div>
+  </div>
+</div>`;
+}
+
+function attachSimEvents() {
+  document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>{
+    const id = el.dataset.nav;
+    if(state.phase==='DECISION') dispatch({type:'SET_DECISION_TAB',payload:id});
+    else dispatch({type:'SET_DASH_TAB',payload:id});
+  }));
+}
+
+// ============================================================
+// DECISION ROUND
+// ============================================================
+function renderDecisionRound() {
+  const decisions = state.currentDecisions;
+  const qInfo = QUARTER_INFO[state.round];
+  const totalInstallCost = ZONES.reduce((acc,z)=>acc+['SLOW','FAST','ULTRA'].reduce((a,t)=>a+(decisions.newInstall?.[z.id]?.[t]||0)*CHARGER_TYPES[t].installCost,0),0);
+  const totalChargers = ZONES.reduce((acc,z)=>acc+['SLOW','FAST','ULTRA'].reduce((a,t)=>a+(state.installations[z.id]?.[t]||0)+(decisions.newInstall?.[z.id]?.[t]||0),0),0);
+  const estRevenue = totalChargers*150*18*0.7*90;
+  const estCost = totalInstallCost+totalChargers*800*90+state.workforce.currentWorkers*LABOR.wagePerDay*LABOR.workdaysPerQ+FIXED_COSTS_PER_QUARTER;
+
+  return `
+  <div class="context-banner">
+    <div class="context-quarter">${qInfo.label}</div>
+    <div class="context-info">
+      <div class="context-period">${qInfo.period}</div>
+      <div class="context-season">${qInfo.season}</div>
+      <div class="context-desc">${qInfo.desc}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Available Capital</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:${state.capital>0?'var(--green)':'var(--red)'}">${fmt(state.capital)}</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:20px">
+    <div class="page-sub">Demand Forecast — ${qInfo.label}</div>
+    <div class="forecast-row">
+      ${ZONES.map(z=>{
+        const forecast=Math.round(BASE_DEMAND[z.id]*SEASONAL_FACTORS[state.round]*Math.pow(1.08,state.round-1));
+        return `<div class="forecast-card"><div class="forecast-zone">${z.name.split(' ')[0]}</div><div class="forecast-val">${forecast}</div><div class="forecast-unit">EVs/day</div></div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <div class="decision-layout">
+    <div class="decision-nav">
+      ${[
+        {id:'capacity',label:'Capacity',icon:svgIcon.battery},
+        {id:'planning',label:'Agg. Planning',icon:svgIcon.cal},
+        {id:'inventory',label:'Inventory',icon:svgIcon.pkg},
+        {id:'queue',label:'Queue Policy',icon:svgIcon.users},
+        {id:'pricing',label:'Pricing & Maint.',icon:svgIcon.dollar}
+      ].map(n=>`<div class="decision-nav-item ${state.activeDecisionTab===n.id?'active':''}" data-dnav="${n.id}">${n.icon} ${n.label}</div>`).join('')}
+      <div style="margin-top:16px">
+        <div class="summary-box">
+          <div class="summary-title">Round Preview</div>
+          ${[["Est. Revenue",fmt(estRevenue)],["Est. Cost",fmt(estCost)],["Install Cost",fmt(totalInstallCost)],["Capital Left",fmt(state.capital-totalInstallCost)]].map(([k,v])=>`<div class="summary-row"><span class="summary-key">${k}</span><span class="summary-val" style="color:${k==='Capital Left'&&(state.capital-totalInstallCost)<0?'var(--red)':'inherit'}">${v}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="decision-main">
+      ${renderDecisionPanel()}
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:20px;padding-top:20px;border-top:2px solid var(--border1)">
+    <button class="btn-secondary" id="btnReviewDecisions">Review Decisions</button>
+    <button class="btn-green" id="btnSubmit" ${totalInstallCost>state.capital?'disabled':''}>Submit Quarter ${state.round} Decisions ${svgIcon.arrow}</button>
+  </div>
+
+  <div id="decisionModal" style="display:none" class="modal-overlay">
+    <div class="modal-box">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:var(--navy);margin-bottom:20px;border-bottom:2px solid var(--border1);padding-bottom:12px">Q${state.round} Decision Summary</div>
+      ${[["Capacity Changes",`${totalChargers} total chargers | Install cost: ${fmt(totalInstallCost)}`],
+         ["Workforce Strategy",`${decisions.apStrategy||'LEVEL'} | Current: ${state.workforce.currentWorkers} workers`],
+         ["Energy Order",`${decisions.energyOrderKwh||0} kWh | Contract: ${decisions.energyContract||'GRID'}`],
+         ["Spare Parts",`${decisions.sparePartsOrder||0} units ordered`],
+         ["Pricing",`Slow: ₹${decisions.priceSLOW||80} | Fast: ₹${decisions.priceFAST||250} | Ultra: ₹${decisions.priceULTRA||500}`],
+         ["Maintenance",`${decisions.maintenanceStrategy||'PREVENTIVE'}`],
+         ["Est. Net Profit",fmt(estRevenue-estCost)]
+      ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border1);font-size:0.9rem"><span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">${k}</span><span style="font-weight:600;color:var(--text1)">${v}</span></div>`).join('')}
+      <div style="display:flex;gap:12px;margin-top:20px">
+        <button class="btn-secondary" id="btnCloseModal" style="flex:1">← Edit Decisions</button>
+        <button class="btn-green" id="btnConfirmSubmit" style="flex:1;justify-content:center">Confirm & Submit ${svgIcon.arrow}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDecisionPanel() {
+  const d = state.currentDecisions;
+  switch(state.activeDecisionTab) {
+    case 'capacity': return renderCapacityPanel(d);
+    case 'planning': return renderAggregatePlanningPanel(d);
+    case 'inventory': return renderInventoryPanel(d);
+    case 'queue': return renderQueuePanel(d);
+    case 'pricing': return renderPricingPanel(d);
+    default: return renderCapacityPanel(d);
+  }
+}
+
+function renderCapacityPanel(decisions) {
+  const totalInstallCost = ZONES.reduce((acc,z)=>acc+['SLOW','FAST','ULTRA'].reduce((a,t)=>a+(decisions.newInstall?.[z.id]?.[t]||0)*CHARGER_TYPES[t].installCost,0),0);
+  return `<div class="decision-panel">
+    <div class="decision-panel-header">${svgIcon.battery}<div class="decision-panel-title">Charger Installation & Zone Allocation</div></div>
+    <div class="decision-panel-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:${totalInstallCost>state.capital?'#FFF0EF':'#E8FFF5'};border-radius:8px;padding:10px 16px;margin-bottom:20px;border:1.5px solid ${totalInstallCost>state.capital?'var(--red)':'var(--green)'}">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--text2)">Installation Cost Preview</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:${totalInstallCost>state.capital?'var(--red)':'var(--green)'}">${fmt(totalInstallCost)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;margin-bottom:8px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);text-transform:uppercase">Zone</div>
+        ${['SLOW','FAST','ULTRA'].map(t=>`<div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);text-transform:uppercase;text-align:center;min-width:90px">${CHARGER_TYPES[t].name.split('(')[0]}<br/><span style="color:${CHARGER_TYPES[t].color}">₹${(CHARGER_TYPES[t].installCost/1000).toFixed(0)}K/unit</span></div>`).join('')}
+      </div>
+      ${ZONES.map(z=>`
+        <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border1)">
+          <div><div style="font-weight:600;font-size:0.9rem;color:var(--text1)">${z.name}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3)">${BASE_DEMAND[z.id]} EVs/day base</div></div>
+          ${['SLOW','FAST','ULTRA'].map(t=>{
+            const current=state.installations[z.id]?.[t]||0;
+            const adding=decisions.newInstall?.[z.id]?.[t]||0;
+            return `<div style="text-align:center;min-width:90px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);margin-bottom:4px">Current: <strong>${current}</strong></div>
+              <div class="number-stepper">
+                <button class="stepper-btn" data-zone="${z.id}" data-type="${t}" data-delta="-1">−</button>
+                <span class="stepper-val" id="sv_${z.id}_${t}">${adding}</span>
+                <button class="stepper-btn" data-zone="${z.id}" data-type="${t}" data-delta="1">+</button>
+              </div>
+              ${adding>0?`<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:${CHARGER_TYPES[t].color};margin-top:2px">+${fmt(adding*CHARGER_TYPES[t].installCost)}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>`).join('')}
+      <div class="theory-formula" style="margin-top:16px">Utilization = Actual Sessions / (Chargers × μ × 18hrs) × 100% | Break-even = Fixed Cost / (Revenue/session – Variable Cost/session)</div>
+    </div>
+  </div>`;
+}
+
+function renderAggregatePlanningPanel(decisions) {
+  const strategy = decisions.apStrategy||'LEVEL';
+  const totalC = ZONES.reduce((acc,z)=>acc+['SLOW','FAST','ULTRA'].reduce((a,t)=>a+((state.installations[z.id]?.[t]||0)+(decisions.newInstall?.[z.id]?.[t]||0)),0),0);
+  const reqWorkers = Math.ceil(totalC/LABOR.chargersPerTech);
+  const curW = state.workforce.currentWorkers;
+  const hire = strategy==='CHASE'?Math.max(0,reqWorkers-curW):0;
+  const fire = strategy==='CHASE'?Math.max(0,curW-reqWorkers):0;
+  const laborCostEst = hire*LABOR.hiringCost+fire*LABOR.firingCost+(strategy==='CHASE'?reqWorkers:curW)*LABOR.wagePerDay*LABOR.workdaysPerQ;
+  return `<div class="decision-panel">
+    <div class="decision-panel-header">${svgIcon.cal}<div class="decision-panel-title">Workforce & Aggregate Planning Strategy</div></div>
+    <div class="decision-panel-body">
+      <div class="strategy-grid">
+        ${[['CHASE','Chase Strategy','Hire/fire each period to match demand exactly'],['LEVEL','Level Strategy','Constant workforce; use overtime/undertime buffer'],['MIXED','Mixed Strategy','Partial adjustment plus authorized overtime']].map(([v,n,d])=>`<div class="strategy-card ${strategy===v?'selected':''}" data-strategy="${v}"><div class="strategy-name">${n}</div><div class="strategy-sub">${d}</div></div>`).join('')}
+      </div>
+      <div class="grid-2">
+        <div class="summary-box">
+          <div class="summary-title">Workforce Analysis</div>
+          ${[['Current Workers',curW],['Required for Chargers',`${reqWorkers} (${totalC} chargers ÷ 8)`],['Projected Target',strategy==='CHASE'?reqWorkers:strategy==='LEVEL'?curW:Math.ceil((curW+reqWorkers)/2)],['Hires Needed',hire>0?`+${hire} @ ₹15K each`:'None'],['Fires Needed',fire>0?`-${fire} @ ₹20K each`:'None'],['Est. Labor Cost',fmt(laborCostEst)]].map(([k,v])=>`<div class="summary-row"><span class="summary-key">${k}</span><span class="summary-val">${v}</span></div>`).join('')}
+        </div>
+        <div class="summary-box">
+          <div class="summary-title">Strategy Cost Comparison</div>
+          ${[['Chase',hire*LABOR.hiringCost+fire*LABOR.firingCost+reqWorkers*LABOR.wagePerDay*LABOR.workdaysPerQ,'var(--amber)'],['Level',curW*LABOR.wagePerDay*LABOR.workdaysPerQ,'var(--navy)'],['Mixed',Math.ceil((curW+reqWorkers)/2)*LABOR.wagePerDay*LABOR.workdaysPerQ+Math.max(0,reqWorkers-Math.ceil((curW+reqWorkers)/2))*LABOR.hiringCost,'var(--green)']].map(([s,c,col])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border1)"><span style="font-size:0.85rem;color:${strategy===s.toUpperCase()?col:'var(--text3)'};font-weight:${strategy===s.toUpperCase()?700:400}">${s}${strategy===s.toUpperCase()?' ✓':''}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:${col}">${fmt(c)}</span></div>`).join('')}
+          <div class="theory-formula" style="margin-top:12px">Chase Cost = Σ(Hires×₹15K) + Σ(Fires×₹20K) + Workers×₹800×65days</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderInventoryPanel(decisions) {
+  const totalC=ZONES.reduce((acc,z)=>acc+Object.values(state.installations[z.id]||{}).reduce((a,b)=>a+b,0),0);
+  const annualD=totalC*200*4;
+  const eoqE=calculateEOQ(annualD,INV.energy.orderCost,INV.energy.holdingRate*INV.energy.unitCost);
+  const playerOrder=decisions.energyOrderKwh||eoqE;
+  const holdCost=(playerOrder/2)*INV.energy.holdingRate*INV.energy.unitCost;
+  const orderCostQ=(annualD/(playerOrder||1))*INV.energy.orderCost/4;
+  const eoqHold=(eoqE/2)*INV.energy.holdingRate*INV.energy.unitCost;
+  const eoqOrder=(annualD/(eoqE||1))*INV.energy.orderCost/4;
+  return `<div class="decision-panel">
+    <div class="decision-panel-header">${svgIcon.pkg}<div class="decision-panel-title">Energy Storage & Spare Parts Inventory</div></div>
+    <div class="decision-panel-body">
+      <div class="section-header">${svgIcon.zapSm} Energy Storage (Battery Banks)</div>
+      <div class="input-grid">
+        <div class="input-group"><div class="input-label">Energy Order (kWh)</div><input type="number" class="num-input" id="energyOrderKwh" value="${playerOrder}" min="50" max="5000"/></div>
+        <div class="input-group"><div class="input-label">Safety Stock Target (kWh)</div><input type="number" class="num-input" id="energySafetyStock" value="${Math.round(eoqE*0.15)}" min="0" max="1000"/></div>
+        <div class="input-group"><div class="input-label">EOQ Recommendation</div><div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--green);padding-top:6px">${eoqE} kWh</div><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3)">√(2×${Math.round(annualD/1000)}K×₹${INV.energy.orderCost/1000}K/${Math.round(INV.energy.holdingRate*INV.energy.unitCost)})</div></div>
+      </div>
+      <div class="eoq-comparison">
+        <div class="eoq-box"><div class="eoq-box-label">Your Order Quantity</div><div class="eoq-box-value">${playerOrder} kWh</div><div class="eoq-box-cost">Total Cost/Q: ${fmt(holdCost+orderCostQ)}</div><div class="eoq-box-cost">Holding: ${fmt(holdCost)} | Ordering: ${fmt(orderCostQ)}</div></div>
+        <div class="eoq-box ${Math.abs(playerOrder-eoqE)/eoqE<0.1?'highlight':''}"><div class="eoq-box-label">EOQ Optimal</div><div class="eoq-box-value">${eoqE} kWh</div><div class="eoq-box-cost">Min Cost/Q: ${fmt(eoqHold+eoqOrder)}</div><div class="eoq-box-cost">Saving: ${fmt(Math.max(0,(holdCost+orderCostQ)-(eoqHold+eoqOrder)))}</div></div>
+      </div>
+      <div class="theory-formula" style="margin-top:16px">EOQ = √(2DS/H) = ${eoqE} kWh</div>
+      <div class="section-break"></div>
+      <div class="section-header">${svgIcon.truck} Spare Parts</div>
+      <div class="input-grid">
+        <div class="input-group"><div class="input-label">Order Quantity (units)</div><input type="number" class="num-input" id="sparePartsOrder" value="${decisions.sparePartsOrder||Math.ceil(totalC*4)}" min="0" max="500"/></div>
+        <div class="input-group"><div class="input-label">Parts Needed This Quarter</div><div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--navy);padding-top:6px">${totalC*INV.parts.usagePerChargerQ}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3)">${totalC} chargers × ${INV.parts.usagePerChargerQ} parts/charger</div></div>
+        <div class="input-group"><div class="input-label">Current Stock</div><div style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--text1);padding-top:6px">${state.inventory.spareParts||500}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderQueuePanel(decisions) {
+  const queueData = ZONES.map(z=>{
+    const totalC=['SLOW','FAST','ULTRA'].reduce((a,t)=>a+(state.installations[z.id]?.[t]||0)+(decisions.newInstall?.[z.id]?.[t]||0),0);
+    const allInstalls = {};
+    ['SLOW','FAST','ULTRA'].forEach(t=>allInstalls[t]=(state.installations[z.id]?.[t]||0)+(decisions.newInstall?.[z.id]?.[t]||0));
+    const mu = totalC>0?Object.entries(allInstalls).reduce((acc,[t,c])=>acc+(CHARGER_TYPES[t]?.serviceRate||0)*c,0)/totalC:1;
+    const lambda=BASE_DEMAND[z.id]*SEASONAL_FACTORS[state.round]/18;
+    const q=calculateMMcQueue(lambda,mu,Math.max(1,totalC));
+    return {...z,...q,lambda:+lambda.toFixed(3),mu:+mu.toFixed(3),chargers:totalC};
+  });
+  return `<div class="decision-panel">
+    <div class="decision-panel-header">${svgIcon.users}<div class="decision-panel-title">Service Queue Configuration</div></div>
+    <div class="decision-panel-body">
+      <div class="input-grid" style="margin-bottom:16px">
+        <div class="input-group"><div class="input-label">Max Queue Length (vehicles)</div><input type="range" class="range-input" id="maxQueueLength" min="5" max="50" value="${decisions.maxQueueLength||20}"/><div style="font-family:'IBM Plex Mono',monospace;font-size:0.9rem;font-weight:700" id="maxQueueVal">${decisions.maxQueueLength||20} vehicles</div></div>
+        <div class="input-group"><div class="input-label">Priority Rule</div><select class="select-input" id="priorityRule"><option value="FCFS" ${(decisions.priorityRule||'FCFS')==='FCFS'?'selected':''}>First Come First Served</option><option value="FAST_PRIORITY" ${decisions.priorityRule==='FAST_PRIORITY'?'selected':''}>Priority: Fast Chargers</option></select></div>
+        <div class="input-group"><div class="input-label">Energy Contract</div><select class="select-input" id="energyContractQ"><option value="GRID" ${(decisions.energyContract||'GRID')==='GRID'?'selected':''}>Grid Only (₹8.50/kWh)</option><option value="HYBRID" ${decisions.energyContract==='HYBRID'?'selected':''}>Hybrid Solar (₹7.20/kWh)</option><option value="SOLAR" ${decisions.energyContract==='SOLAR'?'selected':''}>Full Solar (₹6.10/kWh)</option></select></div>
+      </div>
+      <div class="section-subheader">Live M/M/c Queue Preview by Zone</div>
+      <div class="queue-grid">
+        ${queueData.map(z=>`<div class="queue-card" style="border-top:3px solid ${getWqColor(z.Wq)}">
+          <div class="queue-card-header"><div class="queue-zone-name">${z.name}</div><span class="tag ${z.serviceLevel>=85?'tag-green':z.serviceLevel>=70?'tag-amber':'tag-red'}">${z.serviceLevel}% SVC</span></div>
+          <div class="queue-param-grid">
+            ${[['λ (arr/hr)',z.lambda],['μ (svc/hr)',z.mu],['c (servers)',z.chargers],['ρ (util)',z.rho],['Lq (queue)',z.Lq+' veh'],['Wq (wait)',z.Wq+' min']].map(([l,v])=>`<div class="queue-param"><div class="queue-param-label">${l}</div><div class="queue-param-value">${v}</div></div>`).join('')}
+          </div>
+          <div class="queue-insight">${z.Wq<10?`✓ Excellent! Avg wait ${z.Wq} min is below 10-min target.`:z.Wq<20?`⚠ Wait ${z.Wq} min. Consider adding 1 charger to reduce ρ from ${z.rho}.`:`✗ Critical: ${z.Wq} min wait. ρ=${z.rho} is dangerously high. Add chargers immediately.`}</div>
+        </div>`).join('')}
+      </div>
+      <div class="theory-formula" style="margin-top:16px">M/M/c: ρ = λ/(cμ) | Lq = P₀(λ/μ)^c×ρ / [c!(1-ρ)²] | Wq = Lq/λ</div>
+    </div>
+  </div>`;
+}
+
+function renderPricingPanel(decisions) {
+  return `<div class="decision-panel">
+    <div class="decision-panel-header">${svgIcon.dollar}<div class="decision-panel-title">Pricing Strategy & Maintenance</div></div>
+    <div class="decision-panel-body">
+      <div class="section-header">Pricing by Charger Type</div>
+      <div class="input-grid">
+        ${[['Slow AC Price (₹)','priceSLOW',80,40,200],['Fast DC Price (₹)','priceFAST',250,150,600],['Ultra-Fast Price (₹)','priceULTRA',500,300,1200]].map(([l,k,def,mn,mx])=>`<div class="input-group"><div class="input-label">${l}</div><input type="number" class="num-input" id="${k}" value="${decisions[k]||def}" min="${mn}" max="${mx}"/><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);margin-top:4px">Elasticity: -0.3 (±10% price → ∓3% demand)</div></div>`).join('')}
+      </div>
+      <div class="section-break"></div>
+      <div class="section-header">Maintenance Strategy</div>
+      <div class="strategy-grid" style="margin-bottom:12px">
+        ${[['PREVENTIVE','Preventive','1.2× cost, 5% downtime'],['REACTIVE','Reactive','0.6× cost, 15% breakdown risk'],...(state.round>=4?[['PREDICTIVE','Predictive IoT','1.5× cost, 2% downtime']]:[])]
+          .map(([v,n,d])=>`<div class="strategy-card ${(decisions.maintenanceStrategy||'PREVENTIVE')===v?'selected':''}" data-maint="${v}"><div class="strategy-name">${n}</div><div class="strategy-sub">${d}</div></div>`).join('')}
+      </div>
+      <div class="theory-formula">Preventive: more upfront cost but higher effective capacity. Reactive: saves ₹ short-term, risks breakdowns.</div>
+    </div>
+  </div>`;
+}
+
+function attachDecisionEvents() {
+  // Stepper buttons
+  document.querySelectorAll('[data-zone][data-type][data-delta]').forEach(btn=>btn.addEventListener('click',()=>{
+    const zone=btn.dataset.zone, type=btn.dataset.type, delta=+btn.dataset.delta;
+    const cur=state.currentDecisions.newInstall?.[zone]?.[type]||0;
+    dispatch({type:'UPDATE_INSTALL',zone,chargerType:type,value:cur+delta});
+  }));
+  // Strategy cards (planning)
+  document.querySelectorAll('[data-strategy]').forEach(el=>el.addEventListener('click',()=>{
+    dispatch({type:'UPDATE_DECISION',payload:{apStrategy:el.dataset.strategy}});
+  }));
+  // Maintenance cards
+  document.querySelectorAll('[data-maint]').forEach(el=>el.addEventListener('click',()=>{
+    dispatch({type:'UPDATE_DECISION',payload:{maintenanceStrategy:el.dataset.maint}});
+  }));
+  // Input changes
+  ['energyOrderKwh','energySafetyStock','sparePartsOrder','priceSLOW','priceFAST','priceULTRA'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('change',e=>dispatch({type:'UPDATE_DECISION',payload:{[id]:+e.target.value}}));
+  });
+  const queueRange = document.getElementById('maxQueueLength');
+  if(queueRange) {
+    queueRange.addEventListener('input',e=>{
+      document.getElementById('maxQueueVal').textContent=e.target.value+' vehicles';
+      dispatch({type:'UPDATE_DECISION',payload:{maxQueueLength:+e.target.value}});
+    });
+  }
+  document.getElementById('priorityRule')?.addEventListener('change',e=>dispatch({type:'UPDATE_DECISION',payload:{priorityRule:e.target.value}}));
+  document.getElementById('energyContractQ')?.addEventListener('change',e=>dispatch({type:'UPDATE_DECISION',payload:{energyContract:e.target.value}}));
+
+  // Sub-nav
+  document.querySelectorAll('[data-dnav]').forEach(el=>el.addEventListener('click',()=>dispatch({type:'SET_DECISION_TAB',payload:el.dataset.dnav})));
+
+  // Submit/modal
+  document.getElementById('btnSubmit')?.addEventListener('click',()=>dispatch({type:'SUBMIT_ROUND'}));
+  document.getElementById('btnReviewDecisions')?.addEventListener('click',()=>{document.getElementById('decisionModal').style.display='flex';});
+  document.getElementById('btnCloseModal')?.addEventListener('click',()=>{document.getElementById('decisionModal').style.display='none';});
+  document.getElementById('btnConfirmSubmit')?.addEventListener('click',()=>{document.getElementById('decisionModal').style.display='none';dispatch({type:'SUBMIT_ROUND'});});
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const r = state.lastResult;
+  if(!r) return '<div>No results yet.</div>';
+
+  const prevResult = state.history.length>1?state.history[state.history.length-2]?.result:null;
+  const revTrend = prevResult?((r.totalRevenue-prevResult.totalRevenue)/prevResult.totalRevenue*100):null;
+
+  const events = [];
+  if(r.avgUtilization>90) events.push({type:'danger',title:'System Overload Alert',body:`Average utilization hit ${r.avgUtilization.toFixed(1)}% this quarter.`,theory:'OM Link: Capacity Planning — as ρ→1, queue length Lq→∞ (M/M/c theory)'});
+  if(r.stockoutEnergy+r.stockoutParts>0) events.push({type:'warning',title:'Inventory Stockout',body:`${r.stockoutEnergy+r.stockoutParts} unit shortage. Cost: ${fmt(r.stockoutCost)}.`,theory:'OM Link: Inventory Management — ROP and Safety Stock below required level'});
+  if(r.netProfit>500000) events.push({type:'success',title:'Excellent Quarter!',body:`Net profit of ${fmt(r.netProfit)} achieved. Cumulative: ${fmt(state.cumulativeProfit)}.`,theory:'OM Link: All four concepts aligned for strong performance'});
+
+  const eventsHtml = events.map(ev=>`<div class="event-alert ${ev.type}">
+    <div>${ev.type==='danger'?svgIcon.warn:ev.type==='warning'?svgIcon.warn:ev.type==='success'?svgIcon.success:svgIcon.info}</div>
+    <div style="flex:1"><div class="event-title">${ev.title}</div><div class="event-body">${ev.body}</div><div class="event-theory">${ev.theory}</div></div>
+  </div>`).join('');
+
+  const kpis = [
+    {label:'Quarterly Revenue',value:fmt(r.totalRevenue),trend:revTrend,color:'var(--navy)',sub:`${fmt(r.totalRevenue/Math.max(1,Object.values(r.sessionsByZone||{}).reduce((a,b)=>a+b,0)*90))}/session avg`},
+    {label:'Avg Utilization',value:`${r.avgUtilization.toFixed(1)}%`,color:getUtilColor(r.avgUtilization),sub:r.avgUtilization>=70&&r.avgUtilization<=85?'✓ Optimal range':r.avgUtilization>85?'⚠ Overloaded':'⚠ Underutilized'},
+    {label:'Service Level',value:`${r.avgServiceLevel.toFixed(1)}%`,color:r.avgServiceLevel>=85?'var(--green)':r.avgServiceLevel>=75?'var(--amber)':'var(--red)',sub:`Avg wait: ${r.avgWaitTime.toFixed(1)} min`},
+    {label:'Net Profit',value:fmt(r.netProfit),color:r.netProfit>=0?'var(--green)':'var(--red)',sub:`Cumulative: ${fmt(state.cumulativeProfit)}`}
+  ];
+
+  const tabs = [
+    {id:'summary',label:'Summary',icon:svgIcon.bar},
+    {id:'queuing',label:'Queuing',icon:svgIcon.users},
+    {id:'inventory',label:'Inventory',icon:svgIcon.pkg},
+    {id:'financials',label:'Financials',icon:svgIcon.dollar},
+    {id:'planning',label:'AP Analysis',icon:svgIcon.cal},
+    {id:'theory',label:'Theory Insights',icon:svgIcon.book}
+  ];
+
+  return `
+  ${eventsHtml}
+  <div class="kpi-row">
+    ${kpis.map(k=>`<div class="kpi-card" style="border-left-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="color:${k.color}">${k.value}</div>
+      ${k.trend!==null&&k.trend!==undefined?`<div class="kpi-trend ${k.trend>=0?'trend-up':'trend-down'}">${k.trend>=0?svgIcon.trendUp:svgIcon.trendDown} ${Math.abs(k.trend).toFixed(1)}% vs last quarter</div>`:''}
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);margin-top:2px">${k.sub}</div>
+    </div>`).join('')}
+  </div>
+  <div class="dash-tabs">
+    ${tabs.map(t=>`<button class="dash-tab ${state.activeDashTab===t.id?'active':''}" data-tab="${t.id}">${t.icon} ${t.label}</button>`).join('')}
+  </div>
+  ${renderDashTab()}
+  <div style="display:flex;justify-content:flex-end;padding-top:24px;margin-top:16px;border-top:2px solid var(--border1)">
+    <button class="btn-green" id="btnNextQuarter">${state.round>=6?'View Final Report & Grade':state.round===2||state.round===4?'Proceed to Mid-Term Review':`Proceed to Q${state.round+1}`} ${svgIcon.arrow}</button>
+  </div>`;
+}
+
+function renderDashTab() {
+  const r = state.lastResult;
+  switch(state.activeDashTab) {
+    case 'summary': return renderSummaryTab(r);
+    case 'queuing': return renderQueuingTab(r);
+    case 'inventory': return renderInventoryTab(r);
+    case 'financials': return renderFinancialsTab(r);
+    case 'planning': return renderPlanningTab(r);
+    case 'theory': return renderTheoryTab(r);
+    default: return renderSummaryTab(r);
+  }
+}
+
+function renderSummaryTab(r) {
+  return `<div>
+  <div class="chart-grid">
+    <div class="chart-card"><div class="chart-title">Revenue & Cost Trend</div><div class="chart-sub">₹ in Lakhs</div><canvas id="chartRevCost" height="220"></canvas></div>
+    <div class="chart-card"><div class="chart-title">Zone Utilization & Service Level</div><div class="chart-sub">Current Quarter | Target: 70–85% utilization</div><canvas id="chartUtil" height="220"></canvas></div>
+  </div>
+  <div style="margin-bottom:20px">
+    <div class="page-sub">Zone Performance Details</div>
+    <table class="zone-table">
+      <thead><tr><th>Zone</th><th>Chargers</th><th>Demand/Day</th><th>Utilization</th><th>Avg Wait</th><th>Service Level</th><th>Revenue</th><th>Status</th></tr></thead>
+      <tbody>
+        ${ZONES.map(z=>{
+          const u=r.utilizationByZone[z.id]||0,q=r.queueByZone[z.id]||{};
+          const good=u>=65&&u<=88&&q.serviceLevel>=80, bad=u>92||q.serviceLevel<70||q.Wq>25;
+          return `<tr>
+            <td><strong>${z.name}</strong><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3)">${z.type}</div></td>
+            <td><span class="current-badge">${['SLOW','FAST','ULTRA'].reduce((a,t)=>a+(r.installs[z.id]?.[t]||0),0)}</span></td>
+            <td style="font-family:'IBM Plex Mono',monospace">${r.demandByZone[z.id]}</td>
+            <td><span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${getUtilColor(u)}">${u}%</span><div class="util-bar-wrap"><div class="util-bar" style="width:${u}%;background:${getUtilColor(u)}"></div></div></td>
+            <td style="font-family:'IBM Plex Mono',monospace;color:${getWqColor(q.Wq||0)}">${(q.Wq||0).toFixed(1)} min</td>
+            <td style="font-family:'IBM Plex Mono',monospace;color:${(q.serviceLevel||0)>=85?'var(--green)':'var(--red)'}">${(q.serviceLevel||0).toFixed(1)}%</td>
+            <td style="font-family:'IBM Plex Mono',monospace">${fmt(r.revenueByZone[z.id]||0)}</td>
+            <td><span class="status-badge ${bad?'status-bad':good?'status-good':'status-warning'}">${bad?'⚠ Critical':good?'✓ Optimal':'• Watch'}</span></td>
+          </tr>`;
+        }).join('')}
+        <tr class="total-row">
+          <td><strong>TOTAL</strong></td>
+          <td><span class="current-badge">${ZONES.reduce((acc,z)=>acc+['SLOW','FAST','ULTRA'].reduce((a,t)=>a+(r.installs[z.id]?.[t]||0),0),0)}</span></td>
+          <td style="font-family:'IBM Plex Mono',monospace">${ZONES.reduce((a,z)=>a+r.demandByZone[z.id],0)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-weight:700">${r.avgUtilization.toFixed(1)}% avg</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${r.avgWaitTime.toFixed(1)} min</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${r.avgServiceLevel.toFixed(1)}%</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-weight:700">${fmt(r.totalRevenue)}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div></div>`;
+}
+
+function renderQueuingTab(r) {
+  return `<div>
+  <div class="page-title">Queue Analysis — M/M/c Model</div>
+  <div class="page-sub">All parameters derived from actual M/M/c queuing formulas</div>
+  <div class="queue-grid">
+    ${ZONES.map(z=>{
+      const q=r.queueByZone[z.id]||{};
+      return `<div class="queue-card" style="border-top:4px solid ${getWqColor(q.Wq||0)}">
+        <div class="queue-card-header">
+          <div><div class="queue-zone-name">${z.name}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3)">${z.type}</div></div>
+          <span class="tag ${(q.serviceLevel||0)>=85?'tag-green':(q.serviceLevel||0)>=70?'tag-amber':'tag-red'}">${(q.serviceLevel||0)}% SVC</span>
+        </div>
+        <div class="queue-param-grid">
+          ${[['λ (arrivals/hr)',q.lambda],['μ (service/hr)',q.mu],['c (servers)',q.chargers],['ρ (utilization)',q.rho],['P₀ (idle prob.)',q.P0],['Pw (wait prob.)',`${q.Pw}%`],['Lq (avg queue)',`${q.Lq} veh`],['Wq (avg wait)',`${q.Wq} min`],['L (in system)',q.L],['W (total time)',`${q.W} min`]].map(([l,v])=>`<div class="queue-param"><div class="queue-param-label">${l}</div><div class="queue-param-value">${v}</div></div>`).join('')}
+        </div>
+        <div class="queue-insight">${q.Wq<10?`✓ Excellent performance. ρ=${q.rho} is in healthy range.`:q.Wq<20?`⚠ Moderate queue. ρ=${q.rho}. Adding 1 charger would reduce Wq by ~${Math.round(q.Wq*0.4)} min.`:`✗ Overloaded! ρ=${q.rho} → Lq=${q.Lq} vehicles waiting. Add 2+ chargers urgently.`}</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="theory-card" style="margin-top:20px">
+    <div class="theory-concept">📐 M/M/c Queue Theory Reference</div>
+    <div class="theory-formula">ρ = λ/(cμ) | P₀ = 1/[Σₙ₌₀^(c-1)(λ/μ)ⁿ/n! + (λ/μ)^c/(c!(1-ρ))] | Lq = P₀(λ/μ)^c×ρ/[c!(1-ρ)²] | Wq = Lq/λ | Service Level P(wait≤15min) = 1 - C(c,ρ)×e^(-(cμ-λ)×0.25)</div>
+  </div>
+  </div>`;
+}
+
+function renderInventoryTab(r) {
+  return `<div>
+  <div class="page-title">Inventory Performance</div>
+  <div class="page-sub">EOQ analysis and stockout tracking</div>
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-title">Energy Storage — EOQ Analysis</div>
+      <div class="section-break"></div>
+      ${[['Your Order Quantity',`${r.playerEnergyOrder} kWh`],['EOQ Recommendation',`${r.eoqEnergy} kWh`],['Deviation from EOQ',`${(r.inventoryDeviation*100).toFixed(1)}%`],['Holding Cost',fmt(r.holdingCostEnergy)],['Ordering Cost',fmt(r.orderingCostEnergy)],['Total Inventory Cost',fmt(r.holdingCostEnergy+r.orderingCostEnergy)],['Stockout Events (Energy)',r.stockoutEnergy],['Stockout Cost',fmt(r.stockoutCost)]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border1);font-size:0.85rem"><span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">${k}</span><span style="font-weight:600;color:${k.includes('Stockout')&&v>0?'var(--red)':'var(--text1)'}">${v}</span></div>`).join('')}
+      <div class="theory-formula" style="margin-top:12px">EOQ = ${r.eoqEnergy} kWh | Your order: ${r.playerEnergyOrder} kWh</div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Spare Parts Status</div>
+      <div class="section-break"></div>
+      ${[['Parts Consumed',r.partsNeeded],['Parts in Stock (end)',`${state.inventory.spareParts} units`],['Stockout Events',r.stockoutParts],['Parts Lead Time',`${INV.parts.leadTimeDays/7} weeks`],['Holding Rate',`${INV.parts.holdingRate*100}% of unit cost/mo`]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border1);font-size:0.85rem"><span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">${k}</span><span style="font-weight:600;color:${k.includes('Stockout')&&v>0?'var(--red)':'var(--text1)'}">${v}</span></div>`).join('')}
+      <div style="margin-top:16px;background:${r.stockoutParts>0?'#FFF0EF':'#E8FFF5'};border-radius:8px;padding:12px"><div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:${r.stockoutParts>0?'var(--red)':'var(--green)'};text-transform:uppercase">${r.stockoutParts>0?'⚠ Stockout Risk — Increase Safety Stock':'✓ No Stockouts — Inventory Policy Adequate'}</div></div>
+      <div class="theory-formula" style="margin-top:12px">ROP = d̄×L + z×σd×√L | Safety Stock = z×σd×√L (z=1.65 for 95% service level)</div>
+    </div>
+  </div>
+  </div>`;
+}
+
+function renderFinancialsTab(r) {
+  return `<div>
+  <div class="page-title">Financial Breakdown</div>
+  <div class="page-sub">Income Statement — Q${state.round}</div>
+  <div class="income-statement">
+    <div class="income-header">VoltGrid Pvt. Ltd. — Quarterly P&L Statement (Q${state.round})</div>
+    <div class="income-body">
+      <div class="income-section">
+        <div class="income-section-title">Revenue</div>
+        ${ZONES.map(z=>`<div class="income-row sub"><span>${z.name}</span><span>${fmt(r.revenueByZone[z.id]||0)}</span></div>`).join('')}
+        <div class="income-row total"><span>TOTAL REVENUE</span><span class="col-green">${fmt(r.totalRevenue)}</span></div>
+      </div>
+      <div class="income-section">
+        <div class="income-section-title">Operating Costs</div>
+        ${[['Labor (Workforce)',r.laborCost],['Charger Operations',r.chargerOpCost],['Energy Procurement',r.energyCost],['Maintenance',r.maintenanceCost],['Inventory (Holding + Ordering)',r.holdingCostEnergy+r.orderingCostEnergy],['Charger Installation (one-time)',r.installCost],['Stockout Costs',r.stockoutCost],['Fixed Overhead (HQ+License+Lease)',FIXED_COSTS_PER_QUARTER]].map(([l,v])=>`<div class="income-row sub"><span>${l}</span><span>${fmt(v)}</span></div>`).join('')}
+        <div class="income-row total"><span>TOTAL COST</span><span class="col-red">${fmt(r.totalCost)}</span></div>
+      </div>
+      <div class="income-row net"><span>NET PROFIT / (LOSS)</span><span class="${r.netProfit>=0?'col-green':'col-red'}">${fmt(r.netProfit)} (${((r.netProfit/Math.max(1,r.totalRevenue))*100).toFixed(1)}% margin)</span></div>
+      <div class="income-row" style="margin-top:8px"><span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">Cumulative Profit</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${state.cumulativeProfit>=0?'var(--green)':'var(--red)'}">${fmt(state.cumulativeProfit)}</span></div>
+    </div>
+  </div>
+  </div>`;
+}
+
+function renderPlanningTab(r) {
+  const prevW = state.history.length>1?state.history[state.history.length-2]?.result?.targetWorkers||10:10;
+  return `<div>
+  <div class="page-title">Aggregate Planning Analysis</div>
+  <div class="page-sub">Workforce strategy outcome — Q${state.round}</div>
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-title">This Quarter's AP Outcome</div>
+      <div class="section-break"></div>
+      ${[['Strategy Used',state.lastResult?.apStrategy||state.currentDecisions.apStrategy||'LEVEL'],['Previous Workers',prevW],['Current Workers',r.targetWorkers],['Hires',r.hire>0?`+${r.hire} × ₹15,000 = ${fmt(r.hire*LABOR.hiringCost)}`:'None'],['Fires',r.fire>0?`-${r.fire} × ₹20,000 = ${fmt(r.fire*LABOR.firingCost)}`:'None'],['Overtime Hours',r.overtime>0?`${Math.round(r.overtime)} hrs`:'None'],['Undertime Hours',r.undertime>0?`${Math.round(r.undertime)} idle hrs`:'None'],['Total Labor Cost',fmt(r.laborCost)]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border1);font-size:0.85rem"><span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">${k}</span><span style="font-weight:600;color:var(--text1)">${v}</span></div>`).join('')}
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Strategy Cost Comparison</div>
+      <div class="section-break"></div>
+      ${[['Chase Cost (est)',fmt((Math.abs(r.hire+r.fire)*17500)+r.targetWorkers*LABOR.wagePerDay*LABOR.workdaysPerQ)],['Level Cost (est)',fmt(state.workforce.currentWorkers*LABOR.wagePerDay*LABOR.workdaysPerQ)],['Mixed Cost (est)',fmt(Math.ceil((state.workforce.currentWorkers+r.targetWorkers)/2)*LABOR.wagePerDay*LABOR.workdaysPerQ)],['Your Actual Cost',fmt(r.laborCost)]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border1);font-size:0.85rem"><span style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">${k}</span><span style="font-weight:600;color:var(--text1)">${v}</span></div>`).join('')}
+      <div class="theory-formula" style="margin-top:12px">Chase: variable HR costs | Level: fixed labor | Mixed: partial adjustment + OT blend</div>
+      <div class="theory-suggestion" style="margin-top:12px">${svgIcon.star}<span>Level strategy minimizes hire/fire costs but may create undertime during low-demand quarters.</span></div>
+    </div>
+  </div>
+  <div class="theory-formula" style="margin-top:16px">Total AP Cost = Σ(hₜ×₹15,000) + Σ(fₜ×₹20,000) + Workers×₹800×65 + OT×₹800×1.5 + Undertime×₹800×0.5</div>
+  </div>`;
+}
+
+function renderTheoryTab(r) {
+  const scoreCategories = [['Operational (Util + SvcLevel)',r.roundScore.operational,25],['Financial (Profitability)',r.roundScore.financial,25],['Inventory (EOQ + Stockouts)',r.roundScore.inventory,25],['Planning (AP Strategy)',25-Math.max(0,25-r.roundScore.operational),25]];
+  return `<div>
+  <div class="page-title">Theory Insights</div>
+  <div class="page-sub">Your Q${state.round} decisions analyzed through OM theory</div>
+  ${r.feedback&&r.feedback.length>0?r.feedback.map(fb=>`<div class="theory-card" style="border-left-color:${fb.color==='danger'?'var(--red)':fb.color==='warning'?'var(--amber)':fb.color==='info'?'var(--blue)':'var(--green)'}">
+    <div class="theory-concept">🎓 OM CONCEPT: ${fb.concept}</div>
+    <div class="theory-title">${fb.title}</div>
+    <div class="theory-body">${fb.explanation}</div>
+    <div class="theory-formula">📐 Formula: ${fb.formula}</div>
+    <div class="theory-suggestion">${svgIcon.check} <span>💡 ${fb.suggestion}</span></div>
+  </div>`).join(''):
+  `<div class="event-alert success">${svgIcon.success}<div><div class="event-title">Strong Performance This Quarter!</div><div class="event-body">Your decisions were well-aligned with OM best practices. Continue this approach.</div></div></div>`}
+  <div class="theory-card" style="border-left-color:var(--navy);margin-top:16px">
+    <div class="theory-concept">📚 Quarter Score Breakdown</div>
+    <div class="theory-title">Q${state.round} Score: ${r.roundScore.total.toFixed(1)} / 100</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
+      ${scoreCategories.map(([l,s,mx])=>`<div style="background:var(--bg2);border-radius:8px;padding:12px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);text-transform:uppercase;margin-bottom:4px">${l}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;font-weight:700;color:${s/mx>=0.8?'var(--green)':s/mx>=0.6?'var(--amber)':'var(--red)'}">${s.toFixed(1)}/${mx}</div>
+        <div class="util-bar-wrap" style="margin-top:4px"><div class="util-bar" style="width:${(s/mx)*100}%;background:${s/mx>=0.8?'var(--green)':s/mx>=0.6?'var(--amber)':'var(--red)'}"></div></div>
+      </div>`).join('')}
+    </div>
+  </div>
+  </div>`;
+}
+
+function attachDashboardEvents() {
+  document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>dispatch({type:'SET_DASH_TAB',payload:btn.dataset.tab})));
+  document.getElementById('btnNextQuarter')?.addEventListener('click',()=>dispatch({type:'NEXT_QUARTER'}));
+}
+
+function renderCharts() {
+  const r = state.lastResult;
+  if(!r) return;
+  if(state.activeDashTab==='summary') {
+    const chartData = state.history.map(h=>({name:`Q${h.round}`,Revenue:Math.round(h.result.totalRevenue/100000),Cost:Math.round(h.result.totalCost/100000),Profit:Math.round(h.result.netProfit/100000)}));
+    destroyChart('chartRevCost');
+    const c1 = document.getElementById('chartRevCost');
+    if(c1) chartInstances['chartRevCost'] = new Chart(c1, {
+      type:'bar',data:{labels:chartData.map(d=>d.name),datasets:[{label:'Revenue',data:chartData.map(d=>d.Revenue),backgroundColor:'#00A878',borderRadius:3},{label:'Cost',data:chartData.map(d=>d.Cost),backgroundColor:'#E8871E',borderRadius:3},{label:'Profit',data:chartData.map(d=>d.Profit),type:'line',borderColor:'#0A4F8C',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:"'IBM Plex Mono',monospace",size:10}}},tooltip:{titleFont:{family:"'IBM Plex Mono',monospace"},bodyFont:{family:"'IBM Plex Mono',monospace"}}},scales:{x:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}},y:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}}}}
+    });
+    const utilData = ZONES.map(z=>({zone:z.name.split(' ')[0],Utilization:r.utilizationByZone[z.id]||0,ServiceLevel:r.queueByZone[z.id]?.serviceLevel||0}));
+    destroyChart('chartUtil');
+    const c2 = document.getElementById('chartUtil');
+    if(c2) chartInstances['chartUtil'] = new Chart(c2, {
+      type:'bar',data:{labels:utilData.map(d=>d.zone),datasets:[{label:'Utilization',data:utilData.map(d=>d.Utilization),backgroundColor:'#0A4F8C',borderRadius:3},{label:'ServiceLevel',data:utilData.map(d=>d.ServiceLevel),backgroundColor:'#00A878',borderRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:"'IBM Plex Mono',monospace",size:10}}},annotation:{annotations:{ref:{type:'line',yMin:85,yMax:85,borderColor:'#E8871E',borderDash:[4,4],borderWidth:2}}}},scales:{x:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}},y:{min:0,max:100,ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}}}}
+    });
+  }
+}
+
+// ============================================================
+// REVIEW REPORT
+// ============================================================
+function renderReview() {
+  const recentRounds = state.history.slice(-2);
+  const avgUtil = recentRounds.reduce((a,h)=>a+h.result.avgUtilization,0)/recentRounds.length;
+  const avgSvc = recentRounds.reduce((a,h)=>a+h.result.avgServiceLevel,0)/recentRounds.length;
+  const totalProfit = recentRounds.reduce((a,h)=>a+h.result.netProfit,0);
+  const totalStockouts = recentRounds.reduce((a,h)=>a+h.result.stockoutEnergy+h.result.stockoutParts,0);
+  const opScore = recentRounds.reduce((a,h)=>a+h.result.roundScore.operational,0)/recentRounds.length;
+  const finScore = recentRounds.reduce((a,h)=>a+h.result.roundScore.financial,0)/recentRounds.length;
+  const invScore = recentRounds.reduce((a,h)=>a+h.result.roundScore.inventory,0)/recentRounds.length;
+  const totalScore = (opScore+finScore+invScore).toFixed(1);
+  const g = getGrade(+totalScore);
+  const nextPhase = state.round===2?'Q3–Q4':'Q5–Q6';
+  const nextSeason = state.round===2?'Monsoon (lower demand) then Festival Season (+30%).':'Growth phase then final performance review.';
+  const tips = state.round===2?['Q3 (Monsoon): Demand drops 15%. Consider level strategy to avoid over-hiring.','Q4 (Festivals): +30% demand surge. Pre-install chargers NOW.','Safety stock: Increase by 20% before Q3 monsoon maintenance challenges.','Queue: Monitor HEC Colony — industrial demand is most volatile.']:['Q5–Q6: Final 6 months. Focus on profitability optimization and cost reduction.','EOQ: Fine-tune your order quantities to minimize total inventory cost.','Service level: Push for 90%+ in final quarters to maximize score.','Cumulative profit target: Aim for positive cumulative P&L by Q6.'];
+  return `<div class="review-wrap"><div class="review-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+      <div><div class="review-title">Mid-Term Review</div><div class="review-sub">${state.round===2?'Q1–Q2 Summary':'Q3–Q4 Summary'} | VoltGrid Operations</div></div>
+      <div style="text-align:center;background:${g.color}25;border:3px solid ${g.color};border-radius:12px;padding:12px 24px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:2.5rem;font-weight:700;color:${g.color}">${g.grade}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:${g.color}">${g.label}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text3)">${totalScore}/75</div>
+      </div>
+    </div>
+    <table class="scorecard-table" style="margin-bottom:24px">
+      <thead><tr><th>Category</th><th>Score</th><th>Max</th><th>Status</th></tr></thead>
+      <tbody>
+        ${[['Operational (Util + Service Level)',opScore.toFixed(1),25,avgUtil>=70&&avgSvc>=85],['Financial (Profitability)',finScore.toFixed(1),25,totalProfit>0],['Inventory (EOQ + Zero Stockouts)',invScore.toFixed(1),25,totalStockouts===0]].map(([c,s,mx,ok])=>`<tr><td>${c}</td><td><strong>${s}</strong></td><td>${mx}</td><td><span class="tag ${ok?'tag-green':'tag-amber'}">${ok?'✓ Met':'⚠ Improve'}</span></td></tr>`).join('')}
+        <tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>${totalScore}</strong></td><td>75</td><td><span class="tag tag-navy">${g.grade} — ${g.label}</span></td></tr>
+      </tbody>
+    </table>
+    <div style="margin-bottom:20px">
+      <div class="section-header">✅ Strengths</div>
+      ${avgUtil>=70&&avgUtil<=85?`<div class="strength">Charger utilization averaged ${avgUtil.toFixed(1)}% — within the optimal 70–85% range.</div>`:''}
+      ${avgSvc>=85?`<div class="strength">Service level of ${avgSvc.toFixed(1)}% exceeded the 85% target.</div>`:''}
+      ${totalStockouts===0?`<div class="strength">Zero inventory stockouts — excellent supply chain management.</div>`:''}
+      ${totalProfit>0?`<div class="strength">Positive net profit of ${fmt(totalProfit)} over this phase.</div>`:''}
+    </div>
+    <div style="margin-bottom:24px">
+      <div class="section-header">⚠️ Areas for Improvement</div>
+      ${avgUtil>88?`<div class="improvement">High utilization (${avgUtil.toFixed(1)}%) is causing queue buildup. Add 2–3 chargers at overloaded zones.</div>`:''}
+      ${avgUtil<55?`<div class="improvement">Low utilization (${avgUtil.toFixed(1)}%) means fixed costs are eroding profitability.</div>`:''}
+      ${avgSvc<80?`<div class="improvement">Service level (${avgSvc.toFixed(1)}%) below 85% target.</div>`:''}
+      ${totalStockouts>0?`<div class="improvement">Stockout events occurred. Increase safety stock: SS = z×σd×√L.</div>`:''}
+      ${totalProfit<0?`<div class="improvement">Net loss of ${fmt(Math.abs(totalProfit))}. Review charger mix, pricing, and workforce strategy.</div>`:''}
+    </div>
+    <div style="background:var(--bg2);border:1.5px solid var(--border1);border-radius:12px;padding:20px;margin-bottom:24px">
+      <div class="section-header">📋 Guidance for ${nextPhase}</div>
+      <p style="font-size:0.9rem;color:var(--text2);line-height:1.7">${nextSeason}</p>
+      <div style="margin-top:12px">${tips.map((tip,i)=>`<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border1);font-size:0.85rem;color:var(--text2)"><span style="color:var(--navy);font-weight:700">${i+1}.</span> ${tip}</div>`).join('')}</div>
+    </div>
+    <button class="btn-green" id="btnFromReview" style="width:100%;justify-content:center">Continue to ${nextPhase} ${svgIcon.arrow}</button>
+  </div></div>`;
+}
+
+function renderReviewCharts() {}
+
+function attachReviewEvents() {
+  document.getElementById('btnFromReview')?.addEventListener('click',()=>dispatch({type:'FROM_REVIEW'}));
+}
+
+// ============================================================
+// FINAL REPORT
+// ============================================================
+function renderFinal() {
+  const { grade, label, color } = getGrade(state.totalScore);
+  const avgUtil = state.history.reduce((a,h)=>a+h.result.avgUtilization,0)/state.history.length;
+  const avgSvc = state.history.reduce((a,h)=>a+h.result.avgServiceLevel,0)/state.history.length;
+  const totalStockouts = state.history.reduce((a,h)=>a+h.result.stockoutEnergy+h.result.stockoutParts,0);
+
+  return `<div class="final-wrap"><div class="final-card">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px">VoltGrid Operations Simulation — Final Report</div>
+      <h1 style="font-family:'DM Serif Display',serif;font-size:2rem;color:var(--navy);margin-bottom:4px">Simulation Complete</h1>
+      <p style="color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:0.75rem">6 Quarters | Ranchi EV Charging Network | ${state.playerName}</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px">
+      ${[['Total Revenue',fmt(state.cumulativeRevenue),'var(--green)'],['Total Cost',fmt(state.cumulativeCost),'var(--amber)'],['Net Profit',fmt(state.cumulativeProfit),state.cumulativeProfit>=0?'var(--green)':'var(--red)'],['Final Score',`${state.totalScore}/100`,color]].map(([l,v,c])=>`<div style="background:white;border:1px solid var(--border1);border-radius:10px;padding:16px;text-align:center;border-top:4px solid ${c}"><div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${l}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;font-weight:700;color:${c}">${v}</div></div>`).join('')}
+    </div>
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title">6-Quarter P&L Overview</div>
+      <div class="chart-sub">Revenue, Cost, and Profit across all simulation quarters (₹ Lakhs)</div>
+      <canvas id="finalChart" height="250"></canvas>
+    </div>
+    <table class="scorecard-table" style="margin-bottom:28px">
+      <thead><tr><th>Quarter</th><th>Revenue</th><th>Net Profit</th><th>Util %</th><th>Service %</th><th>Stockouts</th><th>Score</th></tr></thead>
+      <tbody>
+        ${state.history.map(h=>`<tr>
+          <td><strong>Q${h.round}</strong> — ${QUARTER_INFO[h.round].season}</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${fmt(h.result.totalRevenue)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;color:${h.result.netProfit>=0?'var(--green)':'var(--red)'}">${fmt(h.result.netProfit)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;color:${getUtilColor(h.result.avgUtilization)}">${h.result.avgUtilization.toFixed(1)}%</td>
+          <td style="font-family:'IBM Plex Mono',monospace;color:${h.result.avgServiceLevel>=85?'var(--green)':'var(--red)'}">${h.result.avgServiceLevel.toFixed(1)}%</td>
+          <td style="color:${h.result.stockoutEnergy+h.result.stockoutParts>0?'var(--red)':'var(--green)'};font-family:'IBM Plex Mono',monospace">${h.result.stockoutEnergy+h.result.stockoutParts}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-weight:700">${h.result.roundScore.total.toFixed(0)}/100</td>
+        </tr>`).join('')}
+        <tr class="total-row">
+          <td><strong>OVERALL</strong></td>
+          <td style="font-family:'IBM Plex Mono',monospace">${fmt(state.cumulativeRevenue)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;color:${state.cumulativeProfit>=0?'var(--green)':'var(--red)'}">${fmt(state.cumulativeProfit)}</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${avgUtil.toFixed(1)}% avg</td>
+          <td style="font-family:'IBM Plex Mono',monospace">${avgSvc.toFixed(1)}% avg</td>
+          <td style="font-family:'IBM Plex Mono',monospace;color:${totalStockouts>0?'var(--red)':'var(--green)'}">${totalStockouts}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${color}">${state.totalScore}/100</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="certificate">
+      <div style="font-size:2.5rem;margin-bottom:8px">⚡</div>
+      <div class="cert-title">VoltGrid Operations Management Simulation</div>
+      <div class="cert-sub">Certificate of Completion</div>
+      <div style="font-size:0.9rem;color:var(--text3);margin-bottom:16px">This certifies that</div>
+      <div class="cert-name">${state.playerName||'Operations Manager'}</div>
+      <div style="font-size:0.9rem;color:var(--text3);margin-bottom:8px">${state.institution?`of ${state.institution}, `:''}successfully completed the 6-quarter VoltGrid EV Charging Network Simulation applying Aggregate Planning, Capacity Planning, Inventory Management (EOQ), and M/M/c Queuing Theory.</div>
+      <div style="margin-bottom:8px"></div>
+      <div class="cert-grade" style="color:${color}">${grade}</div>
+      <div class="cert-score">${state.totalScore} / 100 — ${label}</div>
+      <div class="cert-metrics">
+        ${[['Avg Utilization',`${avgUtil.toFixed(1)}%`],['Service Level',`${avgSvc.toFixed(1)}%`],['Net Profit',fmt(state.cumulativeProfit)],['Stockouts',totalStockouts===0?'✓ Zero':totalStockouts]].map(([l,v])=>`<div class="cert-metric"><div class="cert-metric-label">${l}</div><div class="cert-metric-value" style="color:${color}">${v}</div></div>`).join('')}
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--text3);margin-top:16px">Ranchi, Jharkhand | Q6 2026 | VoltGrid Pvt. Ltd.</div>
+    </div>
+    <div style="margin-top:32px">
+      <div class="section-header">📚 Learning Outcomes Assessment</div>
+      ${[
+        {concept:'Aggregate Planning',ok:state.history.some(h=>h.decisions.apStrategy==='LEVEL'||h.decisions.apStrategy==='MIXED'),insight:'You applied '+(state.history.filter(h=>h.decisions.apStrategy==='CHASE').length>3?'Chase strategy predominantly. Consider how Mixed strategy reduces HR costs in future simulations.':'Level/Mixed strategies effectively, balancing workforce stability with demand variability.')},
+        {concept:'Capacity Planning',ok:avgUtil>=60&&avgUtil<=90,insight:`Average utilization of ${avgUtil.toFixed(1)}%. ${avgUtil>=70&&avgUtil<=85?'Optimal range achieved! You understood the trade-off between revenue maximization and queue prevention.':'Future focus: target 70–85% utilization to maximize revenue while keeping queues manageable.'}`},
+        {concept:'Inventory Management (EOQ)',ok:totalStockouts<3,insight:totalStockouts===0?'Zero stockouts throughout the simulation. Excellent application of safety stock and ROP principles.':`${totalStockouts} stockout events. Review EOQ formula and ensure safety stock = z×σd×√L covers demand variability during lead time.`},
+        {concept:'Queuing Theory (M/M/c)',ok:avgSvc>=80,insight:`Average service level of ${avgSvc.toFixed(1)}%. ${avgSvc>=85?'Target met! You effectively used M/M/c analysis to balance server count with queue wait times.':'Review M/M/c model: Wq = Lq/λ. At high ρ, adding even 1 server dramatically reduces wait time. Target ρ < 0.85.'}`}
+      ].map(lo=>`<div style="background:${lo.ok?'#E8FFF5':'#FFF7ED'};border-left:4px solid ${lo.ok?'var(--green)':'var(--amber)'};border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:12px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:${lo.ok?'var(--green)':'var(--amber)'};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">${lo.ok?'✓':'⚠'} ${lo.concept}</div>
+        <p style="font-size:0.9rem;color:var(--text2)">${lo.insight}</p>
+      </div>`).join('')}
+    </div>
+    <div style="text-align:center;margin-top:32px">
+      <button class="btn-primary" id="btnRestart">Start New Simulation ${svgIcon.refresh}</button>
+    </div>
+  </div></div>`;
+}
+
+function renderFinalCharts() {
+  const chartData = state.history.map(h=>({name:`Q${h.round}`,Revenue:Math.round(h.result.totalRevenue/100000),Cost:Math.round(h.result.totalCost/100000),Profit:Math.round(h.result.netProfit/100000)}));
+  destroyChart('finalChart');
+  const c = document.getElementById('finalChart');
+  if(c) chartInstances['finalChart'] = new Chart(c, {
+    type:'bar',data:{labels:chartData.map(d=>d.name),datasets:[{label:'Revenue',data:chartData.map(d=>d.Revenue),backgroundColor:'#00A878',borderRadius:3},{label:'Cost',data:chartData.map(d=>d.Cost),backgroundColor:'#E8871E',borderRadius:3},{label:'Profit',data:chartData.map(d=>d.Profit),type:'line',borderColor:'#0A4F8C',backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,tension:0.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:"'IBM Plex Mono',monospace",size:10}}},tooltip:{titleFont:{family:"'IBM Plex Mono',monospace"},bodyFont:{family:"'IBM Plex Mono',monospace"}}},scales:{x:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}},y:{ticks:{font:{family:"'IBM Plex Mono',monospace",size:10}}}}}
+  });
+}
+
+function attachFinalEvents() {
+  document.getElementById('btnRestart')?.addEventListener('click',()=>location.reload());
+}
+
+// ============================================================
+// INIT
+// ============================================================
+render();
+</script>
+</body>
+</html>
